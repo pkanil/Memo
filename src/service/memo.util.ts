@@ -8,10 +8,10 @@ export class UtilService {
   }
 
 
-  executeBL(path: string, success: Function) {
+  executeBL(path: string, param:any, success: Function) {
     var SERVICE_URL_PREFIX = 'http://cms.kanil.me/api/process/svc/';
 
-    this.http.get(SERVICE_URL_PREFIX + path + '.json')
+    this.http.post(SERVICE_URL_PREFIX + path + '.json', param)
       .subscribe(
       res => {success(res.json())}, //For Success Response
       err => {console.error(err)} //For Error Response

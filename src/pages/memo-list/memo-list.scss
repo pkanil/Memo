@@ -1,3 +1,9 @@
 page-memo-list {
-
+  .new-memo-btn,
+  .modify-btn,
+  .complete-btn,
+  .del-memo-btn{
+    float: right;
+    margin-right: 10px;
+  }
 }

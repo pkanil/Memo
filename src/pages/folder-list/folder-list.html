@@ -7,10 +7,10 @@
 <ion-header>
 
   <ion-navbar>
-    <ion-title>폴더</ion-title>
+    <ion-title>{{ selectedFolder.length > 0 ? selectedFolder.length + '개 선택됨' : '폴더' }}</ion-title>
     <ion-buttons end>
       <a class="modify-btn" *ngIf="viewMode == 'list'" (click)="modify()">편집</a>
-      <a class="complete-btn" *ngIf="viewMode == 'modify'" (click)="complete()">완료</a>
+      <a class="complete-btn" *ngIf="viewMode == 'modify'" (click)="complete()">취소</a>
     </ion-buttons>
   </ion-navbar>
 
@@ -18,38 +18,28 @@
 
 
 <ion-content>
-
   <ion-list>
+    <ion-item-sliding #slidingItem *ngFor="let folder of folders" (ionDrag)="itemSwipe(slidingItem)">
+      <button (click)="moveMemoPage(folder)" ion-item detail-push>
+        <ion-label>{{ folder.NAME }}<i class="folder-badge">{{ folder.CNT }}</i></ion-label>
+        <ion-checkbox *ngIf="showCheckbox" [(ngModel)]="folder.selected" (ionChange)="changeCheck()"></ion-checkbox>
+      </button>
 
-
-    <ion-item-sliding #slidingItem *ngFor="let user of users">
-      <ion-item detail-push>
-        <ion-label>{{ user.NAME }}<i class="folder-badge">2</i></ion-label>
-        <ion-checkbox *ngIf="showCheckbox" [(ngModel)]="user.selected"></ion-checkbox>
-      </ion-item>
       <ion-item-options side="right" *ngIf="viewMode != 'modify'">
-        <button ion-button color="danger" (click)="share(slidingItem)">삭제</button>
+        <button ion-button color="danger" (click)="deleteFolder(folder)">삭제</button>
       </ion-item-options>
 
       <ion-item-options side="left" *ngIf="viewMode != 'modify'">
         <button ion-button (click)="unread(item)">이름변경</button>
       </ion-item-options>
     </ion-item-sliding>
-
-
-
-
-    <!--<button ion-item *ngFor="let user of users">
-      {{ user.NAME }}
-      <i class="folder-badge">2</i>
-    </button>-->
-
   </ion-list>
-
 </ion-content>
 
 <ion-footer>
   <ion-toolbar>
-    <a class="new-folder-btn" (click)="presentPrompt()">새로운 폴더</a>
+    <a class="new-folder-btn" *ngIf="viewMode != 'modify'" (click)="presentPromptNewFolder()">새로운 폴더</a>
+    <a class="del-folder-btn" [ngClass]="{'disable': selectedFolder.length == 0}"
+       *ngIf="viewMode == 'modify'" (click)="deleteFolder()">삭제</a>
   </ion-toolbar>
 </ion-footer>

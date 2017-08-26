@@ -2,6 +2,9 @@ import { Component } from '@angular/core';
 import { IonicPage, NavController, NavParams } from 'ionic-angular';
 import { UtilService } from '../../service/memo.util';
 import { AlertController } from 'ionic-angular';
+import { MemoListPage } from '../memo-list/memo-list';
+import { URLSearchParams } from "@angular/http"
+
 import * as _ from 'underscore';
 
 /**
@@ -22,21 +25,33 @@ export class FolderListPage {
               private util: UtilService, private alertCtrl: AlertController) {
   }
 
-  private users = [];
+  private folders = [];
   private viewMode = 'list';
   private showCheckbox = false;
+  private selectedFolder = [];
+  private slidingItem;
 
 
   modify(){
     this.viewMode = 'modify';
     this.showCheckbox = true;
+    if(this.slidingItem) {
+      this.slidingItem.close();
+    }
   }
 
   complete(){
+    this.selectedFolder = [];
     this.viewMode = 'list';
     this.showCheckbox = false;
-    _.each(this.users, function (e, i) {
+    _.each(this.folders, function (e, i) {
       e.selected = false;
+    });
+  }
+
+  changeCheck(){
+    this.selectedFolder = _.filter(this.folders, function(e){
+      return e.selected;
     });
   }
 
@@ -47,16 +62,79 @@ export class FolderListPage {
 
   ionViewDidLoad() {
 
-    this.util.executeBL('sinsung/name_list', res => {
-      this.users = res.OUTPUT1;
-      _.each(this.users, function (e, i) {
+    let data = new URLSearchParams();
+
+    this.util.executeBL('memo/folder_list_test',data, res => {
+      this.folders = res.OutBlock_1;
+      _.each(this.folders, function (e, i) {
         e.selected = false;
       });
 
     });
   }
 
-  presentPrompt() {
+  deleteFolder(folder:any){
+
+
+    var hasMemo = false;
+
+    if(folder) {
+      hasMemo = folder.CNT > 0;
+    }else {
+      var memoContainFolder = _.filter(this.selectedFolder, function (e) {
+        return (e.CNT || 0) > 0;
+      });
+      hasMemo = memoContainFolder.length > 0
+    }
+
+    if(hasMemo) {
+      let alert = this.alertCtrl.create({
+        title: '폴더를 삭제하시겠습니까?',
+        message: '폴더만 삭제하면 그 안에 있던 메모가 \'기본\' 폴더로 이동합니다.',
+        buttons: [
+          {
+            text: '폴더 및 메모 삭제',
+            cssClass: 'color-danger',
+            handler: () => {
+              this.doDeleteFolder(folder, 'both');
+            }
+          },
+          {
+            text: '폴더만 삭제',
+            cssClass: 'color-danger',
+            handler: () => {
+              this.doDeleteFolder(folder, 'folder');
+            }
+          },
+          {
+            text: '취소',
+            role: 'cancel',
+            cssClass: 'color-warning',
+            handler: () => { }
+          }
+        ]
+      });
+
+      alert.present();
+
+    }else {
+      this.doDeleteFolder(folder, 'folder')
+    }
+
+  }
+
+  private doDeleteFolder(folder:any, type){
+    console.log('삭제처리!', type);
+  }
+
+  itemSwipe(slidingItem) {
+   this.slidingItem = slidingItem
+  }
+
+  presentPromptNewFolder() {
+
+    this.slidingItem && this.slidingItem.close();
+
     let alert = this.alertCtrl.create({
       title: '새로운 폴더',
       message: '이 폴더의 이름을 입력하십시오.',
@@ -86,6 +164,10 @@ export class FolderListPage {
       ]
     });
     alert.present();
+  }
+
+  moveMemoPage(folder) {
+    this.navCtrl.push(MemoListPage, folder);
   }
 
 }

@@ -7,12 +7,31 @@
 <ion-header>
 
   <ion-navbar>
-    <ion-title>memoList</ion-title>
+    <ion-title>{{ selectedMemo.length > 0 ? selectedMemo.length + '개 선택됨' : '메모' }}</ion-title>
+    <ion-buttons end>
+      <a class="modify-btn" *ngIf="viewMode == 'list'" (click)="modify()">편집</a>
+      <a class="complete-btn" *ngIf="viewMode == 'modify'" (click)="complete()">취소</a>
+    </ion-buttons>
   </ion-navbar>
 
 </ion-header>
 
 
-<ion-content padding>
+<ion-content>
+  <ion-list>
+    <ion-item-sliding #slidingItem *ngFor="let memo of memos" (ionDrag)="itemSwipe(slidingItem)">
+      <ion-item (click)="moveMemoDetailPage(memo)">
+        <ion-label>{{ memo.TITLE }}</ion-label>
+        <ion-checkbox *ngIf="showCheckbox" [(ngModel)]="memo.selected" (ionChange)="changeCheck()"></ion-checkbox>
+      </ion-item>
 
+      <ion-item-options side="right" *ngIf="viewMode != 'modify'">
+        <button ion-button color="danger" (click)="deleteMemo(memo)">삭제</button>
+      </ion-item-options>
+
+      <ion-item-options side="left" *ngIf="viewMode != 'modify'">
+        <button ion-button (click)="unread(item)">이름변경</button>
+      </ion-item-options>
+    </ion-item-sliding>
+  </ion-list>
 </ion-content>
