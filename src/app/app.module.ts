@@ -13,6 +13,8 @@ import { HttpModule } from '@angular/http';
 
 import { UtilService } from '../service/memo.util';
 
+import { SQLite } from '@ionic-native/sqlite';
+
 
 
 @NgModule({
@@ -40,7 +42,8 @@ import { UtilService } from '../service/memo.util';
     StatusBar,
     SplashScreen,
     {provide: ErrorHandler, useClass: IonicErrorHandler},
-    UtilService
+    UtilService,
+    SQLite
   ]
 })
 export class AppModule {}
