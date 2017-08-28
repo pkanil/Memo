@@ -61,7 +61,7 @@ export class MemoListPage {
   ionViewDidLoad() {
 
     let data = new URLSearchParams();
-    data.append('FOLDER_ID', this.navParams.data.ID);
+    data.append('FOLDER_ID', this.navParams.data.FD_ID);
     this.util.executeBL('memo/memo_list_test',data , res => {
       this.memos = res.OutBlock_1;
       _.each(this.memos, function (e, i) {

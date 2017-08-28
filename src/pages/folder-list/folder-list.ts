@@ -4,6 +4,7 @@ import { UtilService } from '../../service/memo.util';
 import { AlertController } from 'ionic-angular';
 import { MemoListPage } from '../memo-list/memo-list';
 import { URLSearchParams } from "@angular/http"
+import {Platform} from 'ionic-angular';
 
 import * as _ from 'underscore';
 
@@ -22,7 +23,15 @@ import * as _ from 'underscore';
 export class FolderListPage {
 
   constructor(private navCtrl: NavController, private navParams: NavParams,
-              private util: UtilService, private alertCtrl: AlertController) {
+              private util: UtilService, private alertCtrl: AlertController,
+              private platform: Platform) {
+
+
+    this.platform.ready().then(() => {
+      this.setFolderList();
+    })
+
+
   }
 
   private folders = [];
@@ -30,6 +39,16 @@ export class FolderListPage {
   private showCheckbox = false;
   private selectedFolder = [];
   private slidingItem;
+
+
+  setFolderList() {
+    this.util.selectLocalFolderList(res=>{
+      console.log('selectLocalFolderList success : ' + JSON.stringify(res));
+      this.folders = res;
+    },res=>{
+      alert(res);
+    });
+  }
 
 
   modify(){
@@ -62,19 +81,9 @@ export class FolderListPage {
 
   ionViewDidLoad() {
 
-    let data = new URLSearchParams();
-
-    this.util.executeBL('memo/folder_list_test',data, res => {
-      this.folders = res.OutBlock_1;
-      _.each(this.folders, function (e, i) {
-        e.selected = false;
-      });
-
-    });
   }
 
   deleteFolder(folder:any){
-
 
     var hasMemo = false;
 
@@ -135,7 +144,7 @@ export class FolderListPage {
 
     this.slidingItem && this.slidingItem.close();
 
-    let alert = this.alertCtrl.create({
+    let _alert = this.alertCtrl.create({
       title: '새로운 폴더',
       message: '이 폴더의 이름을 입력하십시오.',
       inputs: [
@@ -158,12 +167,17 @@ export class FolderListPage {
             if(!data.folder_name) {
               return false;
             }
+
+            this.util.addFolder(data.folder_name, () => {
+              this.setFolderList();
+            }, (e) => alert(e))
+
             return true;
           }
         }
       ]
     });
-    alert.present();
+    _alert.present();
   }
 
   moveMemoPage(folder) {

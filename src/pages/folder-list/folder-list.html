@@ -21,15 +21,15 @@
   <ion-list>
     <ion-item-sliding #slidingItem *ngFor="let folder of folders" (ionDrag)="itemSwipe(slidingItem)">
       <button (click)="moveMemoPage(folder)" ion-item detail-push>
-        <ion-label>{{ folder.NAME }}<i class="folder-badge">{{ folder.CNT }}</i></ion-label>
-        <ion-checkbox *ngIf="showCheckbox" [(ngModel)]="folder.selected" (ionChange)="changeCheck()"></ion-checkbox>
+        <ion-label>{{ folder.FD_NAME }}<i class="folder-badge">{{ folder.CNT }}</i></ion-label>
+        <ion-checkbox *ngIf="folder.DEFAULT_YN != 'Y' && showCheckbox" [(ngModel)]="folder.selected" (ionChange)="changeCheck()"></ion-checkbox>
       </button>
 
-      <ion-item-options side="right" *ngIf="viewMode != 'modify'">
+      <ion-item-options side="right" *ngIf="folder.DEFAULT_YN != 'Y' && viewMode != 'modify'">
         <button ion-button color="danger" (click)="deleteFolder(folder)">삭제</button>
       </ion-item-options>
 
-      <ion-item-options side="left" *ngIf="viewMode != 'modify'">
+      <ion-item-options side="left" *ngIf="folder.DEFAULT_YN != 'Y' && viewMode != 'modify'">
         <button ion-button (click)="unread(item)">이름변경</button>
       </ion-item-options>
     </ion-item-sliding>
