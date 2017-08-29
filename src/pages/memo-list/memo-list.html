@@ -7,9 +7,9 @@
 <ion-header>
 
   <ion-navbar>
-    <ion-title>{{ selectedMemo.length > 0 ? selectedMemo.length + '개 선택됨' : '메모' }}</ion-title>
+    <ion-title>{{ selectedFolder.FD_NAME }}</ion-title>
     <ion-buttons end>
-      <a class="modify-btn" *ngIf="viewMode == 'list'" (click)="modify()">편집</a>
+      <a [ngClass]="{'disable': memos.length == 0}" class="modify-btn" *ngIf="viewMode == 'list'" (click)="modify()">편집</a>
       <a class="complete-btn" *ngIf="viewMode == 'modify'" (click)="complete()">취소</a>
     </ion-buttons>
   </ion-navbar>
@@ -20,7 +20,7 @@
 <ion-content>
   <ion-list>
     <ion-item-sliding #slidingItem *ngFor="let memo of memos" (ionDrag)="itemSwipe(slidingItem)">
-      <ion-item (click)="moveMemoDetailPage(memo)">
+      <ion-item (click)="moveWriteMemo(memo)">
         <ion-label>{{ memo.TITLE }}</ion-label>
         <ion-checkbox *ngIf="showCheckbox" [(ngModel)]="memo.selected" (ionChange)="changeCheck()"></ion-checkbox>
       </ion-item>
@@ -35,3 +35,16 @@
     </ion-item-sliding>
   </ion-list>
 </ion-content>
+
+<ion-footer>
+  <ion-toolbar>
+    <a class="new-memo-btn" *ngIf="viewMode != 'modify'" (click)="moveWriteMemo()"><ion-icon name="open"></ion-icon></a>
+    <a class="del-memo-btn" *ngIf="viewMode == 'modify'" (click)="deleteMemo()">모두 삭제</a>
+    <a class="move-memo-btn" *ngIf="viewMode == 'modify'" (click)="moveMemo()">모두 이동</a>
+    <span>
+      {{memos.length == 0 ? '메모 없음' : (memos.length + '개의 메모')}}
+    </span>
+    <!--<a class="del-folder-btn" [ngClass]="{'disable': selectedFolder.length == 0}"
+       *ngIf="viewMode == 'modify'" (click)="deleteFolder()">삭제</a>-->
+  </ion-toolbar>
+</ion-footer>

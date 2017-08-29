@@ -1,9 +1,27 @@
 page-memo-list {
-  .new-memo-btn,
   .modify-btn,
-  .complete-btn,
-  .del-memo-btn{
+  .complete-btn{
     float: right;
     margin-right: 10px;
   }
+
+  .new-memo-btn,
+  .del-memo-btn,
+  .move-memo-btn{
+    position: absolute;
+    right:10px;
+  }
+
+  .move-memo-btn {
+    margin-left: 10px;
+  }
+
+  ion-icon {
+    font-size: 25px; //Preferred size here
+  }
+
+  ion-footer {
+    text-align: center;
+  }
+
 }

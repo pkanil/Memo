@@ -146,10 +146,10 @@ export class FolderListPage {
       });
     }
 
-    this.util.removeFolder(selectedFolderId, () => {
+    this.util.removeFolder(selectedFolderId, type, () => {
       this.setFolderList();
     }, (res) => {
-      alert(res)
+      alert('삭제실패 : ' + res);
     });
 
   }

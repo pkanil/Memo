@@ -29,8 +29,14 @@ export class MemoListPage {
   private showCheckbox = false;
   private selectedMemo = [];
   private slidingItem;
+  private selectedFolder = {};
 
   modify(){
+
+    if(this.memos.length == 0) {
+      return;
+    }
+
     this.viewMode = 'modify';
     this.showCheckbox = true;
     if(this.slidingItem) {
@@ -58,9 +64,22 @@ export class MemoListPage {
     this.showCheckbox = (mode == 'modify');
   }
 
+  setMemoList(folderId:string) {
+    this.util.selectLocalMemoList(folderId, res=>{
+      this.memos = res;
+      this.complete();
+    },res=>{
+      alert(res);
+    });
+  }
+
   ionViewDidLoad() {
 
-    let data = new URLSearchParams();
+    this.selectedFolder = this.navParams.data;
+
+    this.setMemoList(this.navParams.data.FD_ID);
+
+    /*let data = new URLSearchParams();
     data.append('FOLDER_ID', this.navParams.data.FD_ID);
     this.util.executeBL('memo/memo_list_test',data , res => {
       this.memos = res.OutBlock_1;
@@ -68,7 +87,7 @@ export class MemoListPage {
         e.selected = false;
       });
 
-    });
+    });*/
   }
 
   deleteMemo(memo:any){
@@ -83,7 +102,7 @@ export class MemoListPage {
     this.slidingItem = slidingItem
   }
 
-  moveMemoDetailPage(memo:any) {
+  moveWriteMemo(memo:any) {
     console.log('상세로 이동!', memo);
   }
 

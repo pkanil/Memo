@@ -1,7 +1,7 @@
 import {Injectable} from '@angular/core';
 import {Http} from '@angular/http';
 import {SQLite, SQLiteObject} from '@ionic-native/sqlite';
-import { AlertController } from 'ionic-angular';
+import {AlertController} from 'ionic-angular';
 import {Platform} from 'ionic-angular';
 
 @Injectable()
@@ -25,7 +25,6 @@ export class UtilService {
           }).catch(e => console.log('[TBL_FOLDER, TBL_MEMO]table init [error] : ' + e));
 
 
-
           db.executeSql('SELECT count(*) AS folder_cnt FROM TBL_FOLDER', {})
             .then((rs) => {
               if (rs.rows.item(0).folder_cnt == 0) {
@@ -35,7 +34,7 @@ export class UtilService {
                   console.log(JSON.stringify(rs))
                 }).catch(e => console.log('[TBL_FOLDER] insert default folder [error 1]' + e));
 
-              }else {
+              } else {
                 db.executeSql('SELECT FD_ID, FD_NAME, FD_DEL_YN, DEFAULT_YN FROM TBL_FOLDER', {}).then((rs) => {
                   console.log('######### [TBL_FOLDER] select folder list [success] ###########');
                   console.log(JSON.stringify(rs.rows.item(0)))
@@ -58,20 +57,20 @@ export class UtilService {
       name: 'memo.db',
       location: 'default'
     }).then((db: SQLiteObject) => {
-        db.executeSql('SELECT * FROM TBL_MEMO WHERE FD_ID = ? AND  MM_DEL_YN <> ?', [folderId, 'Y'])
-          .then((rs) => {
-            var len = rs.rows.length;
-            var list = [];
-            for(var i = 0; i < len; i++) {
-              list.push(rs.rows.item(i));
-            }
-            success(list);
-          }).catch(e => {
-            error(e);
-          });
-      }).catch(e => {
+      db.executeSql('SELECT * FROM TBL_MEMO WHERE FD_ID = ? AND  MM_DEL_YN <> ?', [folderId, 'Y'])
+        .then((rs) => {
+          var len = rs.rows.length;
+          var list = [];
+          for (var i = 0; i < len; i++) {
+            list.push(rs.rows.item(i));
+          }
+          success(list);
+        }).catch(e => {
         error(e);
       });
+    }).catch(e => {
+      error(e);
+    });
   }
 
 
@@ -122,17 +121,17 @@ export class UtilService {
   }
 
 
-    /**
+  /**
    * 폴더를 삭제한다.
    * @param success
    * @param error
    */
 
-  removeFolder(folderId:Array<string>, success: Function, error: Function) {
+  removeFolder(folderId: Array<string>, type: string, success: Function, error: Function) {
 
     var questionStr = [];
 
-    for(var i = 0, cnt = folderId.length; i < cnt; i++) {
+    for (var i = 0, cnt = folderId.length; i < cnt; i++) {
       questionStr.push('?');
     }
 
@@ -140,12 +139,17 @@ export class UtilService {
       name: 'memo.db',
       location: 'default'
     }).then((db: SQLiteObject) => {
-      db.executeSql('DELETE FROM TBL_FOLDER WHERE FD_ID IN (' + questionStr.join(',') + ')', folderId)
-        .then((rs) => {
-          success()
-        }).catch(e => {
-        error(e);
-      });
+
+      //TODO 메모도 삭제 하도록. 추가1
+      db.transaction(tx => {
+        tx.executeSql('DELETE FROM TBL_FOLDER WHERE FD_ID IN (' + questionStr.join(',') + ')', folderId);
+        if(type == 'both') {
+          tx.executeSql('UPDATE TBL_MEMO SET MM_DEL_YN = \'Y\' WHERE FD_ID IN (' + questionStr.join(',') + ')', folderId);
+        }
+      }).then(() => {
+        success();
+      }).catch(e => error(e));
+
     }).catch(e => {
       error(e);
     });
@@ -158,7 +162,7 @@ export class UtilService {
    * @param error
    */
 
-  addFolder(folderName:string, success: Function, error: Function) {
+  addFolder(folderName: string, success: Function, error: Function) {
 
     var newId = this.getUniqueId();
 
@@ -205,21 +209,22 @@ export class UtilService {
       name: 'memo.db',
       location: 'default'
     }).then((db: SQLiteObject) => {
-        db.executeSql('SELECT T1.*, (SELECT COUNT(*) FROM TBL_MEMO WHERE FD_ID = T1.FD_ID AND MM_DEL_YN <> ?) AS CNT FROM TBL_FOLDER T1 WHERE FD_DEL_YN <> ?', ['Y','Y'])
-          .then((rs) => {
-            var len = rs.rows.length;
-            var list = [];
-            for(var i = 0; i < len; i++) {
-              list.push(rs.rows.item(i));
-            }
-            success(list);
-          }).catch(e => {
-            error(e);
-          });
-      }).catch(e => {
+      db.executeSql('SELECT T1.*, (SELECT COUNT(*) FROM TBL_MEMO WHERE FD_ID = T1.FD_ID AND MM_DEL_YN <> ?) AS CNT FROM TBL_FOLDER T1 WHERE FD_DEL_YN <> ?', ['Y', 'Y'])
+        .then((rs) => {
+          var len = rs.rows.length;
+          var list = [];
+          for (var i = 0; i < len; i++) {
+            list.push(rs.rows.item(i));
+          }
+          success(list);
+        }).catch(e => {
         error(e);
       });
+    }).catch(e => {
+      error(e);
+    });
   }
+
 
   /**
    * 서버 조회
@@ -242,7 +247,7 @@ export class UtilService {
 
   }
 
-  getUniqueId(){
+  getUniqueId() {
     return Math.random().toString(16).substring(2);
   }
 
