@@ -10,7 +10,7 @@
     <ion-title>{{ selectedMemo.length > 0 ? selectedMemo.length + '개 선택됨' : selectedFolder.FD_NAME }}</ion-title>
     <ion-buttons end>
       <a [ngClass]="{'disable': memos.length == 0}" class="modify-btn" *ngIf="viewMode == 'list'" (click)="modify()">편집</a>
-      <a class="cancel-btn" *ngIf="viewMode == 'modify'" (click)="complete()">취소</a>
+      <a class="complete-btn" *ngIf="viewMode == 'modify'" (click)="complete()">취소</a>
     </ion-buttons>
   </ion-navbar>
 
