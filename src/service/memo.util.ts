@@ -3,24 +3,26 @@ import {Http} from '@angular/http';
 import {SQLite, SQLiteObject} from '@ionic-native/sqlite';
 import {AlertController} from 'ionic-angular';
 import {Platform} from 'ionic-angular';
-
+import {DatePipe} from "@angular/common";
 @Injectable()
 export class UtilService {
 
+  private dbName = 'memo2.db';
 
   constructor(private http: Http, private sqlite: SQLite, private platform: Platform,
               private alertCtrl: AlertController) {
 
+
     this.platform.ready().then(() => {
       this.sqlite.create({
-        name: 'memo.db',
+        name: this.dbName,
         location: 'default'
       })
         .then((db: SQLiteObject) => {
 
           db.transaction(tx => {
             tx.executeSql('CREATE TABLE IF NOT EXISTS TBL_FOLDER (FD_ID, FD_NAME, FD_DEL_YN, DEFAULT_YN)');
-            tx.executeSql('CREATE TABLE IF NOT EXISTS TBL_MEMO (FD_ID, MM_ID, MM_TITLE, MM_DEL_YN, DEFAULT_YN, CREATE_DDTM, LST_MODIFY_DDTM)');
+            tx.executeSql('CREATE TABLE IF NOT EXISTS TBL_MEMO (FD_ID, MM_ID, MM_TITLE, MM_CTNT, MM_DEL_YN, CREATE_DDTM, LST_MODIFY_DDTM)');
             console.log('######### [TBL_FOLDER, TBL_MEMO] table init [success]###########');
           }).catch(e => console.log('[TBL_FOLDER, TBL_MEMO]table init [error] : ' + e));
 
@@ -46,6 +48,51 @@ export class UtilService {
 
   }
 
+  /**
+   * 로컬 메모 조회
+   * @param success
+   * @param error
+   */
+  selectLocalMemo(memoId: string, success: Function, error: Function) {
+    this.sqlite.create({
+      name: this.dbName,
+      location: 'default'
+    }).then((db: SQLiteObject) => {
+      db.executeSql('SELECT * FROM TBL_MEMO WHERE MM_ID = ?', [memoId])
+        .then((rs) => {
+          success(rs.rows.item(0));
+        }).catch(e => {
+        error(e);
+      });
+    }).catch(e => {
+      error(e);
+    });
+  }
+
+  /**
+   * 로컬 메모 업데이트
+   * @param success
+   * @param error
+   */
+  updateLocalMemo(memoId: string, ctnt:string, success: Function, error: Function) {
+    this.sqlite.create({
+      name: this.dbName,
+      location: 'default'
+    }).then((db: SQLiteObject) => {
+
+      var time = new Date().getTime();
+
+      db.executeSql('UPDATE TBL_MEMO SET MM_CTNT = ?, LST_MODIFY_DDTM = ? WHERE MM_ID = ?', [ctnt, time, memoId])
+        .then((rs) => {
+          success();
+        }).catch(e => {
+        error(e);
+      });
+    }).catch(e => {
+      error(e);
+    });
+  }
+
 
   /**
    * 로컬 메모 리스트 조회
@@ -54,20 +101,24 @@ export class UtilService {
    */
   selectLocalMemoList(folderId: string, success: Function, error: Function) {
     this.sqlite.create({
-      name: 'memo.db',
+      name: this.dbName,
       location: 'default'
     }).then((db: SQLiteObject) => {
-      db.executeSql('SELECT * FROM TBL_MEMO WHERE FD_ID = ? AND  MM_DEL_YN <> ?', [folderId, 'Y'])
-        .then((rs) => {
-          var len = rs.rows.length;
-          var list = [];
-          for (var i = 0; i < len; i++) {
-            list.push(rs.rows.item(i));
-          }
-          success(list);
-        }).catch(e => {
-        error(e);
+
+      db.executeSql('DELETE FROM TBL_MEMO WHERE MM_CTNT == \'\'', []).then(()=>{
+        db.executeSql('SELECT * FROM TBL_MEMO WHERE FD_ID = ? AND  MM_DEL_YN <> ?', [folderId, 'Y'])
+          .then((rs) => {
+            var len = rs.rows.length;
+            var list = [];
+            for (var i = 0; i < len; i++) {
+              list.push(rs.rows.item(i));
+            }
+            success(list);
+          }).catch(e => {
+          error(e);
+        });
       });
+
     }).catch(e => {
       error(e);
     });
@@ -82,7 +133,7 @@ export class UtilService {
 
   modifyFolder(folderId: string, folderName: string, success: Function, error: Function) {
     this.sqlite.create({
-      name: 'memo.db',
+      name: this.dbName,
       location: 'default'
     }).then((db: SQLiteObject) => {
 
@@ -120,6 +171,36 @@ export class UtilService {
     });
   }
 
+  /**
+   * 메모를 삭제한다.
+   * @param success
+   * @param error
+   */
+
+  removeMemo(memoId: Array<string>, success: Function, error: Function) {
+    var questionStr = [];
+    for (var i = 0, cnt = memoId.length; i < cnt; i++) {
+      questionStr.push('?');
+    }
+
+
+    this.sqlite.create({
+      name: this.dbName,
+      location: 'default'
+    }).then((db: SQLiteObject) => {
+
+      db.transaction(tx => {
+        tx.executeSql('UPDATE TBL_MEMO SET MM_DEL_YN = \'Y\' WHERE MM_ID IN (' + questionStr.join(',') + ')', memoId);
+      }).then(() => {
+        success();
+      }).catch(e => error(e));
+
+    }).catch(e => {
+      error(e);
+    });
+
+  }
+
 
   /**
    * 폴더를 삭제한다.
@@ -136,7 +217,7 @@ export class UtilService {
     }
 
     this.sqlite.create({
-      name: 'memo.db',
+      name: this.dbName,
       location: 'default'
     }).then((db: SQLiteObject) => {
 
@@ -167,7 +248,7 @@ export class UtilService {
     var newId = this.getUniqueId();
 
     this.sqlite.create({
-      name: 'memo.db',
+      name: this.dbName,
       location: 'default'
     }).then((db: SQLiteObject) => {
       db.executeSql('SELECT * FROM TBL_FOLDER WHERE FD_NAME = ?', [folderName])
@@ -206,17 +287,43 @@ export class UtilService {
    */
   selectLocalFolderList(success: Function, error: Function) {
     this.sqlite.create({
-      name: 'memo.db',
+      name: this.dbName,
       location: 'default'
     }).then((db: SQLiteObject) => {
-      db.executeSql('SELECT T1.*, (SELECT COUNT(*) FROM TBL_MEMO WHERE FD_ID = T1.FD_ID AND MM_DEL_YN <> ?) AS CNT FROM TBL_FOLDER T1 WHERE FD_DEL_YN <> ?', ['Y', 'Y'])
-        .then((rs) => {
-          var len = rs.rows.length;
-          var list = [];
-          for (var i = 0; i < len; i++) {
-            list.push(rs.rows.item(i));
-          }
-          success(list);
+
+      db.executeSql('DELETE FROM TBL_MEMO WHERE MM_CTNT == \'\'', []).then(()=>{
+        db.executeSql('SELECT T1.*, (SELECT COUNT(*) FROM TBL_MEMO WHERE FD_ID = T1.FD_ID AND MM_DEL_YN <> ?) AS CNT FROM TBL_FOLDER T1 WHERE FD_DEL_YN <> ?', ['Y', 'Y'])
+          .then((rs) => {
+            var len = rs.rows.length;
+            var list = [];
+            for (var i = 0; i < len; i++) {
+              list.push(rs.rows.item(i));
+            }
+            success(list);
+          }).catch(e => {
+          error(e);
+        });
+      });
+    }).catch(e => {
+      error(e);
+    });
+  }
+
+
+  createNewMemo(folderId, success: Function, error: Function) {
+    this.sqlite.create({
+      name: this.dbName,
+      location: 'default'
+    }).then((db: SQLiteObject) => {
+
+      var memoId = this.getUniqueId();
+      //FD_ID, MM_ID, MM_TITLE, MM_CTNT, MM_DEL_YN, CREATE_DDTM, LST_MODIFY_DDTM
+
+      var time = new Date().getTime();
+
+      db.executeSql('INSERT INTO TBL_MEMO VALUES (?, ?, ?, ? ,? ,? ,?)', [folderId, memoId, '', '', 'N', time, time])
+        .then(() => {
+          success(memoId);
         }).catch(e => {
         error(e);
       });

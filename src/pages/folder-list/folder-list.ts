@@ -41,6 +41,17 @@ export class FolderListPage {
   private slidingItem;
 
 
+  ionViewWillEnter() {
+
+    console.log(111, window['plugins'])
+
+    if(window['sqlitePlugin']) {
+      this.setFolderList();
+    }
+
+  }
+
+
   setFolderList() {
     this.util.selectLocalFolderList(res=>{
       console.log('selectLocalFolderList success : ' + JSON.stringify(res));

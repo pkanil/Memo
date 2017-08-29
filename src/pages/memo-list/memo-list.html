@@ -7,10 +7,10 @@
 <ion-header>
 
   <ion-navbar>
-    <ion-title>{{ selectedFolder.FD_NAME }}</ion-title>
+    <ion-title>{{ selectedMemo.length > 0 ? selectedMemo.length + '개 선택됨' : selectedFolder.FD_NAME }}</ion-title>
     <ion-buttons end>
       <a [ngClass]="{'disable': memos.length == 0}" class="modify-btn" *ngIf="viewMode == 'list'" (click)="modify()">편집</a>
-      <a class="complete-btn" *ngIf="viewMode == 'modify'" (click)="complete()">취소</a>
+      <a class="cancel-btn" *ngIf="viewMode == 'modify'" (click)="complete()">취소</a>
     </ion-buttons>
   </ion-navbar>
 
@@ -39,10 +39,18 @@
 <ion-footer>
   <ion-toolbar>
     <a class="new-memo-btn" *ngIf="viewMode != 'modify'" (click)="moveWriteMemo()"><ion-icon name="open"></ion-icon></a>
-    <a class="del-memo-btn" *ngIf="viewMode == 'modify'" (click)="deleteMemo()">모두 삭제</a>
-    <a class="move-memo-btn" *ngIf="viewMode == 'modify'" (click)="moveMemo()">모두 이동</a>
-    <span>
+
+    <a class="del-memo-btn" *ngIf="selectedMemo.length == 0 && viewMode == 'modify'" (click)="deleteMemo('all')">모두 삭제</a>
+    <a class="move-memo-btn" *ngIf="selectedMemo.length == 0 && viewMode == 'modify'" (click)="moveMemo('all')">모두 이동</a>
+
+    <a class="del-memo-btn" *ngIf="selectedMemo.length > 0 && viewMode == 'modify'" (click)="deleteMemo()">삭제</a>
+    <a class="move-memo-btn" *ngIf="selectedMemo.length > 0 && viewMode == 'modify'" (click)="moveMemo()">다음으로 이동</a>
+
+    <span *ngIf="viewMode != 'modify'">
       {{memos.length == 0 ? '메모 없음' : (memos.length + '개의 메모')}}
+    </span>
+    <span *ngIf="viewMode == 'modify'">
+      &nbsp;
     </span>
     <!--<a class="del-folder-btn" [ngClass]="{'disable': selectedFolder.length == 0}"
        *ngIf="viewMode == 'modify'" (click)="deleteFolder()">삭제</a>-->

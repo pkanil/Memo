@@ -9,10 +9,12 @@ import { HomePage } from '../pages/home/home';
 
 import { FolderListPage } from '../pages/folder-list/folder-list';
 import { MemoListPage } from '../pages/memo-list/memo-list';
+import { PanelPage } from '../pages/panel/panel';
+
+import { FolderSelectPage } from '../pages/folder-select/folder-select';
+
 import { HttpModule } from '@angular/http';
-
 import { UtilService } from '../service/memo.util';
-
 import { SQLite } from '@ionic-native/sqlite';
 
 
@@ -22,7 +24,9 @@ import { SQLite } from '@ionic-native/sqlite';
     MyApp,
     HomePage,
     FolderListPage,
-    MemoListPage
+    MemoListPage,
+    PanelPage,
+    FolderSelectPage
   ],
   imports: [
     HttpModule,
@@ -36,7 +40,9 @@ import { SQLite } from '@ionic-native/sqlite';
     MyApp,
     HomePage,
     FolderListPage,
-    MemoListPage
+    MemoListPage,
+    PanelPage,
+    FolderSelectPage
   ],
   providers: [
     StatusBar,

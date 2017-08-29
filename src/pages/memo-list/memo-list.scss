@@ -6,10 +6,14 @@ page-memo-list {
   }
 
   .new-memo-btn,
-  .del-memo-btn,
-  .move-memo-btn{
+  .del-memo-btn{
     position: absolute;
     right:10px;
+  }
+
+  .move-memo-btn{
+    position: absolute;
+    left: 10px;
   }
 
   .move-memo-btn {

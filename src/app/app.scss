@@ -27,3 +27,7 @@
 a.disable {
   color: #dedede;
 }
+
+.list-md > .item-wrapper:last-child .item-inner {
+  border-bottom: 1px solid #dedede;
+}
