@@ -76,17 +76,71 @@ export class UtilService {
 
 
   /**
+   * 폴더명을 변경한다.
+   * @param success
+   * @param error
+   */
+
+  modifyFolder(folderId: string, folderName: string, success: Function, error: Function) {
+    this.sqlite.create({
+      name: 'memo.db',
+      location: 'default'
+    }).then((db: SQLiteObject) => {
+
+
+      db.executeSql('SELECT * FROM TBL_FOLDER WHERE FD_NAME = ?', [folderName])
+        .then((rs) => {
+          var len = rs.rows.length;
+          if (len > 0) {
+            let _alert = this.alertCtrl.create({
+              title: '이름이 이미 사용 중임',
+              message: '다른 이름을 선택하십시오.',
+              buttons: [{
+                text: '확인',
+                role: 'cancel'
+              }]
+            });
+            _alert.present();
+            return;
+          }
+
+          db.executeSql('UPDATE TBL_FOLDER SET FD_NAME = ? WHERE FD_ID = ?', [folderName, folderId])
+            .then((rs) => {
+              success()
+            }).catch(e => {
+            error(e);
+          });
+
+        }).catch(e => {
+        error(e);
+      });
+
+
+    }).catch(e => {
+      error(e);
+    });
+  }
+
+
+    /**
    * 폴더를 삭제한다.
    * @param success
    * @param error
    */
 
-  removeFolder(folderId:string, success: Function, error: Function) {
+  removeFolder(folderId:Array<string>, success: Function, error: Function) {
+
+    var questionStr = [];
+
+    for(var i = 0, cnt = folderId.length; i < cnt; i++) {
+      questionStr.push('?');
+    }
+
     this.sqlite.create({
       name: 'memo.db',
       location: 'default'
     }).then((db: SQLiteObject) => {
-      db.executeSql('DELETE FROM TBL_FOLDER WHERE FD_ID = ?', [folderId])
+      db.executeSql('DELETE FROM TBL_FOLDER WHERE FD_ID IN (' + questionStr.join(',') + ')', folderId)
         .then((rs) => {
           success()
         }).catch(e => {
@@ -115,7 +169,7 @@ export class UtilService {
       db.executeSql('SELECT * FROM TBL_FOLDER WHERE FD_NAME = ?', [folderName])
         .then((rs) => {
           var len = rs.rows.length;
-          if(len > 0) {
+          if (len > 0) {
             let _alert = this.alertCtrl.create({
               title: '이름이 이미 사용 중임',
               message: '다른 이름을 선택하십시오.',
@@ -151,7 +205,7 @@ export class UtilService {
       name: 'memo.db',
       location: 'default'
     }).then((db: SQLiteObject) => {
-        db.executeSql('SELECT * FROM TBL_FOLDER WHERE FD_DEL_YN <> ?', ['Y'])
+        db.executeSql('SELECT T1.*, (SELECT COUNT(*) FROM TBL_MEMO WHERE FD_ID = T1.FD_ID AND MM_DEL_YN <> ?) AS CNT FROM TBL_FOLDER T1 WHERE FD_DEL_YN <> ?', ['Y','Y'])
           .then((rs) => {
             var len = rs.rows.length;
             var list = [];

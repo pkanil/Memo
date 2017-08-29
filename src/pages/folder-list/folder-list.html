@@ -30,7 +30,7 @@
       </ion-item-options>
 
       <ion-item-options side="left" *ngIf="folder.DEFAULT_YN != 'Y' && viewMode != 'modify'">
-        <button ion-button (click)="unread(item)">이름변경</button>
+        <button ion-button (click)="presentPromptModifyFolder(folder)">이름변경</button>
       </ion-item-options>
     </ion-item-sliding>
   </ion-list>

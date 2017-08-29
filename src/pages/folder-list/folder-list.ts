@@ -45,6 +45,7 @@ export class FolderListPage {
     this.util.selectLocalFolderList(res=>{
       console.log('selectLocalFolderList success : ' + JSON.stringify(res));
       this.folders = res;
+      this.complete();
     },res=>{
       alert(res);
     });
@@ -132,12 +133,73 @@ export class FolderListPage {
 
   }
 
-  private doDeleteFolder(folder:any, type){
+  private doDeleteFolder(folder: any, type) {
     console.log('삭제처리!', type);
+
+    var selectedFolderId = [];
+
+    if(folder) {
+      selectedFolderId.push(folder.FD_ID);
+    }else {
+      _.each(this.selectedFolder, function(e, i){
+        selectedFolderId.push(e.FD_ID);
+      });
+    }
+
+    this.util.removeFolder(selectedFolderId, () => {
+      this.setFolderList();
+    }, (res) => {
+      alert(res)
+    });
+
   }
 
   itemSwipe(slidingItem) {
    this.slidingItem = slidingItem
+  }
+
+  presentPromptModifyFolder(folder) {
+
+    this.slidingItem && this.slidingItem.close();
+
+    let _alert = this.alertCtrl.create({
+      title: '폴더 이름 변경',
+      message: '이 폴더의 새로운 이름을 입력하십시오.',
+      inputs: [
+        {
+          name: 'folder_name',
+          value: folder.FD_NAME,
+          placeholder: '이름',
+          id: 'modify-folder-name-input'
+        }
+      ],
+      buttons: [
+        {
+          text: '취소',
+          role: 'cancel',
+          handler: data => {
+            console.log('Cancel clicked');
+          }
+        },
+        {
+          text: '저장',
+          handler: data => {
+            if(!data.folder_name) {
+              return false;
+            }
+
+            this.util.modifyFolder(folder.FD_ID, data.folder_name, () => {
+              this.setFolderList();
+            }, (e) => alert(e));
+
+            return true;
+          }
+        }
+      ]
+    });
+    _alert.present().then(()=>{
+      document.getElementById('modify-folder-name-input').focus();
+    });
   }
 
   presentPromptNewFolder() {
@@ -150,7 +212,8 @@ export class FolderListPage {
       inputs: [
         {
           name: 'folder_name',
-          placeholder: '이름'
+          placeholder: '이름',
+          id: 'new-folder-name-input'
         }
       ],
       buttons: [
@@ -177,7 +240,9 @@ export class FolderListPage {
         }
       ]
     });
-    _alert.present();
+    _alert.present().then(()=>{
+      document.getElementById('new-folder-name-input').focus();
+    });
   }
 
   moveMemoPage(folder) {
