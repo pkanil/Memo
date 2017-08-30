@@ -16,6 +16,26 @@
 </ion-header>
 
 
-<ion-content padding>
+<ion-content>
+
+  <div style="border-bottom: 1px solid #dddddd;">
+    <div padding>
+      <div style="display: inline-block;">
+        <img style="width: 40px;" [src]="selectedMemoInfo.memosPath"/>
+      </div>
+      <div style="display: inline-block; vertical-align: top;margin-top: 10px; margin-left: 10px;">
+        <p class="folder-select-info text-bold ft-16">{{selectedMemoInfo.title}}</p>
+        <p class="folder-select-info">{{selectedMemoInfo.id.length + '개의 메모'}}</p>
+      </div>
+    </div>
+  </div>
+
+  <ion-list>
+    <button ion-item *ngFor="let folder of selectedMemoInfo.folders"
+            (click)="selectFolder(folder)">
+      <ion-label>{{ folder.FD_NAME }}<i class="folder-badge">{{ folder.CNT }}</i></ion-label>
+    </button>
+  </ion-list>
+
 
 </ion-content>

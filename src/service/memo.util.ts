@@ -211,7 +211,6 @@ export class UtilService {
   removeFolder(folderId: Array<string>, type: string, success: Function, error: Function) {
 
     var questionStr = [];
-
     for (var i = 0, cnt = folderId.length; i < cnt; i++) {
       questionStr.push('?');
     }
@@ -226,6 +225,8 @@ export class UtilService {
         tx.executeSql('DELETE FROM TBL_FOLDER WHERE FD_ID IN (' + questionStr.join(',') + ')', folderId);
         if(type == 'both') {
           tx.executeSql('UPDATE TBL_MEMO SET MM_DEL_YN = \'Y\' WHERE FD_ID IN (' + questionStr.join(',') + ')', folderId);
+        }else {
+          tx.executeSql('UPDATE TBL_MEMO SET FD_ID = \'BASE_FOLDER\' WHERE FD_ID IN (' + questionStr.join(',') + ')', folderId);
         }
       }).then(() => {
         success();
@@ -281,28 +282,53 @@ export class UtilService {
   }
 
   /**
-   * 로컬 폴더 리스트 조회
+ * 로컬 폴더 리스트 조회
+ * @param success
+ * @param error
+ */
+selectLocalFolderList(success: Function, error: Function) {
+  this.sqlite.create({
+    name: this.dbName,
+    location: 'default'
+  }).then((db: SQLiteObject) => {
+
+    db.executeSql('DELETE FROM TBL_MEMO WHERE MM_CTNT == \'\'', []).then(()=>{
+      db.executeSql('SELECT T1.*, (SELECT COUNT(*) FROM TBL_MEMO WHERE FD_ID = T1.FD_ID AND MM_DEL_YN <> ?) AS CNT FROM TBL_FOLDER T1 WHERE FD_DEL_YN <> ?', ['Y', 'Y'])
+        .then((rs) => {
+          var len = rs.rows.length;
+          var list = [];
+          for (var i = 0; i < len; i++) {
+            list.push(rs.rows.item(i));
+          }
+          success(list);
+        }).catch(e => {
+        error(e);
+      });
+    });
+  }).catch(e => {
+    error(e);
+  });
+}
+
+
+  /**
+   * 새로운 메모 생성
+   * @param folderId
    * @param success
    * @param error
    */
-  selectLocalFolderList(success: Function, error: Function) {
+  createNewMemo(folderId, success: Function, error: Function) {
     this.sqlite.create({
       name: this.dbName,
       location: 'default'
     }).then((db: SQLiteObject) => {
-
-      db.executeSql('DELETE FROM TBL_MEMO WHERE MM_CTNT == \'\'', []).then(()=>{
-        db.executeSql('SELECT T1.*, (SELECT COUNT(*) FROM TBL_MEMO WHERE FD_ID = T1.FD_ID AND MM_DEL_YN <> ?) AS CNT FROM TBL_FOLDER T1 WHERE FD_DEL_YN <> ?', ['Y', 'Y'])
-          .then((rs) => {
-            var len = rs.rows.length;
-            var list = [];
-            for (var i = 0; i < len; i++) {
-              list.push(rs.rows.item(i));
-            }
-            success(list);
-          }).catch(e => {
-          error(e);
-        });
+      var memoId = this.getUniqueId();
+      var time = new Date().getTime();
+      db.executeSql('INSERT INTO TBL_MEMO VALUES (?, ?, ?, ? ,? ,? ,?)', [folderId, memoId, '', '', 'N', time, time])
+        .then(() => {
+          success(memoId);
+        }).catch(e => {
+        error(e);
       });
     }).catch(e => {
       error(e);
@@ -310,20 +336,27 @@ export class UtilService {
   }
 
 
-  createNewMemo(folderId, success: Function, error: Function) {
+  /**
+   * 메모를 다른 폴더로 이동
+   * @param folderId
+   * @param memoIdArray
+   * @param success
+   * @param error
+   */
+  moveMemo(folderId: string, memoIdArray: Array<string>, success: Function, error: Function) {
+
+    var questionStr = [];
+    for (var i = 0, cnt = memoIdArray.length; i < cnt; i++) {
+      questionStr.push('?');
+    }
+
     this.sqlite.create({
       name: this.dbName,
       location: 'default'
     }).then((db: SQLiteObject) => {
-
-      var memoId = this.getUniqueId();
-      //FD_ID, MM_ID, MM_TITLE, MM_CTNT, MM_DEL_YN, CREATE_DDTM, LST_MODIFY_DDTM
-
-      var time = new Date().getTime();
-
-      db.executeSql('INSERT INTO TBL_MEMO VALUES (?, ?, ?, ? ,? ,? ,?)', [folderId, memoId, '', '', 'N', time, time])
+      db.executeSql('UPDATE TBL_MEMO SET MM_DEL_YN = \'N\', FD_ID = \'' + folderId + '\' WHERE MM_ID IN (' + questionStr.join(',') + ')', memoIdArray)
         .then(() => {
-          success(memoId);
+          success();
         }).catch(e => {
         error(e);
       });

@@ -176,7 +176,8 @@ export class MemoListPage {
 
     var moveObj = {
       title : '',
-      id: []
+      id: [],
+      exceptFolderId: ''
     };
 
     if(arg) {
@@ -185,7 +186,14 @@ export class MemoListPage {
         _.each(this.memos, function (e, i) {
           moveObj.id.push(e.MM_ID);
         });
-        moveObj.title = this.memos[0].MM_CTNT.split('\n')[0] + ' 외 ' + (this.memos.length - 1) + '개';
+
+        if(this.memos.length == 1) {
+          moveObj.title = this.memos[0].MM_CTNT.split('\n')[0];
+        }else {
+          moveObj.title = this.memos[0].MM_CTNT.split('\n')[0] + ' 외 ' + (this.memos.length - 1) + '개';
+        }
+
+
       }else {
         //하나만 이동
         moveObj.id = [arg.MM_ID];
@@ -196,10 +204,23 @@ export class MemoListPage {
       _.each(this.selectedMemo, function (e, i) {
         moveObj.id.push(e.MM_ID);
       });
-      moveObj.title = this.selectedMemo[0].MM_CTNT.split('\n')[0] + ' 외 ' + (this.selectedMemo.length - 1) + '개';
+
+      if(this.selectedMemo.length == 1) {
+        moveObj.title = this.selectedMemo[0].MM_CTNT.split('\n')[0];
+      }else {
+        moveObj.title = this.selectedMemo[0].MM_CTNT.split('\n')[0] + ' 외 ' + (this.selectedMemo.length - 1) + '개';
+      }
+
     }
 
-    let myModal = this.modalCtrl.create(FolderSelectPage);
+    moveObj.exceptFolderId = this.selectedFolder.FD_ID;
+
+    let myModal = this.modalCtrl.create(FolderSelectPage, moveObj);
+    myModal.onDidDismiss(() => {
+      // Call the method to do whatever in your home.ts
+      console.log('Modal closed');
+      this.setMemoList(this.navParams.data.FD_ID);
+    });
     myModal.present();
 
 
