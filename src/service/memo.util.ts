@@ -7,13 +7,14 @@ import {DatePipe} from "@angular/common";
 @Injectable()
 export class UtilService {
 
-  private dbName = 'memo2.db';
+  private dbName = 'memo4.db';
 
   constructor(private http: Http, private sqlite: SQLite, private platform: Platform,
               private alertCtrl: AlertController) {
 
 
     this.platform.ready().then(() => {
+
       this.sqlite.create({
         name: this.dbName,
         location: 'default'
@@ -21,9 +22,13 @@ export class UtilService {
         .then((db: SQLiteObject) => {
 
           db.transaction(tx => {
-            tx.executeSql('CREATE TABLE IF NOT EXISTS TBL_FOLDER (FD_ID, FD_NAME, FD_DEL_YN, DEFAULT_YN)');
-            tx.executeSql('CREATE TABLE IF NOT EXISTS TBL_MEMO (FD_ID, MM_ID, MM_TITLE, MM_CTNT, MM_DEL_YN, CREATE_DDTM, LST_MODIFY_DDTM)');
+            tx.executeSql('CREATE TABLE IF NOT EXISTS TBL_FOLDER (FD_ID, FD_NAME, DEFAULT_YN)');
+            tx.executeSql('CREATE TABLE IF NOT EXISTS TBL_MEMO (FD_ID, MM_ID, MM_CTNT, CREATE_DDTM, LST_MODIFY_DDTM)');
+            tx.executeSql('CREATE TABLE IF NOT EXISTS TBL_TIMESTAMP (TIME_STAMP)');
             console.log('######### [TBL_FOLDER, TBL_MEMO] table init [success]###########');
+
+            this.updateTime();
+
           }).catch(e => console.log('[TBL_FOLDER, TBL_MEMO]table init [error] : ' + e));
 
 
@@ -31,21 +36,50 @@ export class UtilService {
             .then((rs) => {
               if (rs.rows.item(0).folder_cnt == 0) {
                 //기본 폴더 생성
-                db.executeSql('INSERT INTO TBL_FOLDER VALUES (?,?,?,?)', ['BASE_FOLDER', '기본', 'N', 'Y']).then((rs) => {
+                db.executeSql('INSERT INTO TBL_FOLDER VALUES (?,?,?)', ['BASE_FOLDER', '기본', 'Y']).then((rs) => {
                   console.log('######### [TBL_FOLDER] insert default folder [success] ###########');
                   console.log(JSON.stringify(rs))
                 }).catch(e => console.log('[TBL_FOLDER] insert default folder [error 1]' + e));
 
+                db.executeSql('INSERT INTO TBL_FOLDER VALUES (?,?,?)', ['TRASH_FOLDER', '최근 삭제된 항목', 'Y']).then((rs) => {
+                  console.log('######### [TBL_FOLDER] insert default folder [success] ###########');
+                  console.log(JSON.stringify(rs))
+                }).catch(e => console.log('[TBL_FOLDER] insert default folder [error 2]' + e));
+
               } else {
-                db.executeSql('SELECT FD_ID, FD_NAME, FD_DEL_YN, DEFAULT_YN FROM TBL_FOLDER', {}).then((rs) => {
+                db.executeSql('SELECT FD_ID, FD_NAME, DEFAULT_YN FROM TBL_FOLDER', {}).then((rs) => {
                   console.log('######### [TBL_FOLDER] select folder list [success] ###########');
                   console.log(JSON.stringify(rs.rows.item(0)))
                 }).catch(e => console.log('[TBL_FOLDER] select folder list [error]' + e));
               }
-            }).catch(e => console.log('[TBL_FOLDER] insert default folder [error 2]: ' + e));
+            }).catch(e => console.log('[TBL_FOLDER] insert default folder [error 4]: ' + e));
         }).catch(e => console.log(e));
     })
 
+  }
+
+
+
+  /**
+   * 메모,폴더 수정시간 업데이트
+   * @param success
+   * @param error
+   */
+  updateTime() {
+    var time = new Date().getTime();
+    this.sqlite.create({
+      name: this.dbName,
+      location: 'default'
+    }).then((db: SQLiteObject) => {
+      db.executeSql('UPDATE TBL_TIMESTAMP SET TIME_STAMP = ?', [time])
+        .then((rs) => {
+            console.log('updateTime');
+        }).catch(e => {
+        alert(e)
+      });
+    }).catch(e => {
+      alert(e)
+    });
   }
 
   /**
@@ -85,6 +119,7 @@ export class UtilService {
       db.executeSql('UPDATE TBL_MEMO SET MM_CTNT = ?, LST_MODIFY_DDTM = ? WHERE MM_ID = ?', [ctnt, time, memoId])
         .then((rs) => {
           success();
+          this.updateTime();
         }).catch(e => {
         error(e);
       });
@@ -99,14 +134,14 @@ export class UtilService {
    * @param success
    * @param error
    */
-  selectLocalMemoList(folderId: string, success: Function, error: Function) {
+  selectLocalMemoList(folderId: string, searchInput: string, success: Function, error: Function) {
     this.sqlite.create({
       name: this.dbName,
       location: 'default'
     }).then((db: SQLiteObject) => {
 
       db.executeSql('DELETE FROM TBL_MEMO WHERE MM_CTNT == \'\'', []).then(()=>{
-        db.executeSql('SELECT * FROM TBL_MEMO WHERE FD_ID = ? AND  MM_DEL_YN <> ?', [folderId, 'Y'])
+        db.executeSql('SELECT * FROM TBL_MEMO WHERE FD_ID = ? AND MM_CTNT LIKE \'%' + searchInput + '%\' ORDER BY LST_MODIFY_DDTM DESC', [folderId])
           .then((rs) => {
             var len = rs.rows.length;
             var list = [];
@@ -156,7 +191,8 @@ export class UtilService {
 
           db.executeSql('UPDATE TBL_FOLDER SET FD_NAME = ? WHERE FD_ID = ?', [folderName, folderId])
             .then((rs) => {
-              success()
+              success();
+              this.updateTime();
             }).catch(e => {
             error(e);
           });
@@ -177,23 +213,37 @@ export class UtilService {
    * @param error
    */
 
-  removeMemo(memoId: Array<string>, success: Function, error: Function) {
+  removeMemo(memoId: Array<string>, fullDelete:boolean ,success: Function, error: Function) {
     var questionStr = [];
     for (var i = 0, cnt = memoId.length; i < cnt; i++) {
       questionStr.push('?');
     }
 
 
+    var time = new Date().getTime();
+
     this.sqlite.create({
       name: this.dbName,
       location: 'default'
     }).then((db: SQLiteObject) => {
 
-      db.transaction(tx => {
-        tx.executeSql('UPDATE TBL_MEMO SET MM_DEL_YN = \'Y\' WHERE MM_ID IN (' + questionStr.join(',') + ')', memoId);
-      }).then(() => {
-        success();
-      }).catch(e => error(e));
+      if(fullDelete) {
+        db.transaction(tx => {
+          tx.executeSql('DELETE FROM TBL_MEMO WHERE MM_ID IN (' + questionStr.join(',') + ')', memoId);
+        }).then(() => {
+          success();
+          this.updateTime();
+        }).catch(e => error(e));
+      }else {
+        db.transaction(tx => {
+          tx.executeSql('UPDATE TBL_MEMO SET FD_ID = \'TRASH_FOLDER\', LST_MODIFY_DDTM=\'' + time + '\' WHERE MM_ID IN (' + questionStr.join(',') + ')', memoId);
+        }).then(() => {
+          success();
+          this.updateTime();
+        }).catch(e => error(e));
+      }
+
+
 
     }).catch(e => {
       error(e);
@@ -224,12 +274,13 @@ export class UtilService {
       db.transaction(tx => {
         tx.executeSql('DELETE FROM TBL_FOLDER WHERE FD_ID IN (' + questionStr.join(',') + ')', folderId);
         if(type == 'both') {
-          tx.executeSql('UPDATE TBL_MEMO SET MM_DEL_YN = \'Y\' WHERE FD_ID IN (' + questionStr.join(',') + ')', folderId);
+          tx.executeSql('UPDATE TBL_MEMO SET FD_ID = \'TRASH_FOLDER\' WHERE FD_ID IN (' + questionStr.join(',') + ')', folderId);
         }else {
           tx.executeSql('UPDATE TBL_MEMO SET FD_ID = \'BASE_FOLDER\' WHERE FD_ID IN (' + questionStr.join(',') + ')', folderId);
         }
       }).then(() => {
         success();
+        this.updateTime();
       }).catch(e => error(e));
 
     }).catch(e => {
@@ -268,10 +319,13 @@ export class UtilService {
             return;
           }
 
-          db.executeSql('INSERT INTO TBL_FOLDER VALUES (?,?,?,?)', [newId, folderName, 'N', 'N']).then((rs) => {
+          db.executeSql('INSERT INTO TBL_FOLDER VALUES (?,?,?)', [newId, folderName, 'N']).then((rs) => {
             console.log('######### [TBL_FOLDER] insert folder [success] ###########');
             success();
-          }).catch(e => console.log('[TBL_FOLDER] insert folder [error 1]' + e));
+            this.updateTime();
+          }).catch(e => {
+            console.log('[TBL_FOLDER] insert folder [error 1]' + JSON.stringify(e))
+          });
 
         }).catch(e => {
         error(e);
@@ -293,7 +347,7 @@ selectLocalFolderList(success: Function, error: Function) {
   }).then((db: SQLiteObject) => {
 
     db.executeSql('DELETE FROM TBL_MEMO WHERE MM_CTNT == \'\'', []).then(()=>{
-      db.executeSql('SELECT T1.*, (SELECT COUNT(*) FROM TBL_MEMO WHERE FD_ID = T1.FD_ID AND MM_DEL_YN <> ?) AS CNT FROM TBL_FOLDER T1 WHERE FD_DEL_YN <> ?', ['Y', 'Y'])
+      db.executeSql('SELECT T1.*, (SELECT COUNT(*) FROM TBL_MEMO WHERE FD_ID = T1.FD_ID) AS CNT FROM TBL_FOLDER T1', [])
         .then((rs) => {
           var len = rs.rows.length;
           var list = [];
@@ -324,9 +378,10 @@ selectLocalFolderList(success: Function, error: Function) {
     }).then((db: SQLiteObject) => {
       var memoId = this.getUniqueId();
       var time = new Date().getTime();
-      db.executeSql('INSERT INTO TBL_MEMO VALUES (?, ?, ?, ? ,? ,? ,?)', [folderId, memoId, '', '', 'N', time, time])
+      db.executeSql('INSERT INTO TBL_MEMO VALUES (?, ?, ?, ? ,?)', [folderId, memoId, '', time, time])
         .then(() => {
           success(memoId);
+          this.updateTime();
         }).catch(e => {
         error(e);
       });
@@ -354,9 +409,10 @@ selectLocalFolderList(success: Function, error: Function) {
       name: this.dbName,
       location: 'default'
     }).then((db: SQLiteObject) => {
-      db.executeSql('UPDATE TBL_MEMO SET MM_DEL_YN = \'N\', FD_ID = \'' + folderId + '\' WHERE MM_ID IN (' + questionStr.join(',') + ')', memoIdArray)
+      db.executeSql('UPDATE TBL_MEMO SET FD_ID = \'' + folderId + '\' WHERE MM_ID IN (' + questionStr.join(',') + ')', memoIdArray)
         .then(() => {
           success();
+          this.updateTime();
         }).catch(e => {
         error(e);
       });

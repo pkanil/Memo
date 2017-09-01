@@ -4,11 +4,22 @@ page-panel {
     border: none;
     position: absolute;
     left: 0;
-    right:0;
+    right: 0;
     top: 0;
     bottom: 0;
-    padding: 20px;
+    padding: 10px 20px;
     width: 100%;
+    line-height: 21px;
+    margin-top: 30px;
+  }
+
+  .date-area {
+    text-align: center;
+    color: #b4b4b4;
+  }
+
+  .complete-btn{
+    margin-right: 10px;
   }
 
 }

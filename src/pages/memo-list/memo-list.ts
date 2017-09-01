@@ -6,7 +6,6 @@ import { URLSearchParams } from "@angular/http"
 import { ModalController } from 'ionic-angular';
 import { PanelPage } from '../panel/panel';
 
-
 import * as _ from 'underscore';
 import {FolderSelectPage} from "../folder-select/folder-select";
 
@@ -39,6 +38,26 @@ export class MemoListPage {
     FD_ID: ''
   };
 
+  private searchObj = {
+    value : ''
+  };
+
+  panDown($e) {
+    //console.log(JSON.stringify($e))
+  };
+
+  searchInput($event) {
+
+    console.log('searchInput : ' +  this.searchObj.value);
+
+    this.setMemoList(this.navParams.data.FD_ID);
+
+  };
+
+  searchCancel($event) {
+    console.log('searchCancel')
+  };
+
   modify(){
 
     if(this.memos.length == 0) {
@@ -56,11 +75,43 @@ export class MemoListPage {
     this.selectedMemo = [];
     this.viewMode = 'list';
     this.showCheckbox = false;
+
+    var searchValue = this.searchObj.value;
+
     _.each(this.memos, function (e, i) {
 
       var ctnt = e.MM_CTNT;
-      var title = ctnt.split("\n")[0];
+      var split = ctnt.split("\n");
+
+      var title = split[0];
+
+      if(title.indexOf(searchValue) > -1) {
+        title = title.replace(new RegExp(searchValue, "g"), '<span class="search-result">' + searchValue + '</span>');
+      }
+
       e.TITLE = title;
+
+      if (split.length > 1) {
+        if (searchValue) {
+          var index = _.findIndex(split, function (e, i) {
+            if (i > 0) {
+              if (e.indexOf(searchValue) > -1) {
+                return true;
+              }
+            }
+          });
+        }
+
+
+        if (index > -1) {
+          e.SUMMARY = split[index].replace(new RegExp(searchValue, "g"), '<span class="search-result">' + searchValue + '</span>');
+        }else {
+          e.SUMMARY = split[1];
+        }
+
+      } else {
+        e.SUMMARY = '추가 텍스트 없음';
+      }
 
       e.selected = false;
     });
@@ -78,7 +129,7 @@ export class MemoListPage {
   }
 
   setMemoList(folderId:string) {
-    this.util.selectLocalMemoList(folderId, res=>{
+    this.util.selectLocalMemoList(folderId, this.searchObj.value, res=>{
       this.memos = res;
       this.complete();
     },res=>{
@@ -109,6 +160,8 @@ export class MemoListPage {
 
   deleteMemo(arg:any){
 
+    var isFullDelete = this.selectedFolder.FD_ID == 'TRASH_FOLDER';
+
     if(arg) {
       if(arg == 'all') {
         //전체 메모 삭제
@@ -126,7 +179,7 @@ export class MemoListPage {
                   ids.push(e.MM_ID);
                 });
 
-                this.util.removeMemo(ids, () => {
+                this.util.removeMemo(ids, isFullDelete, () => {
                   this.setMemoList(this.navParams.data.FD_ID);
                 }, (e) => {
                   alert(e)
@@ -146,7 +199,7 @@ export class MemoListPage {
 
       }else {
         //하나 삭제
-        this.util.removeMemo([arg['MM_ID']], () => {
+        this.util.removeMemo([arg['MM_ID']], isFullDelete, () => {
           this.setMemoList(this.navParams.data.FD_ID);
         }, (e) => {
           alert(e)
@@ -162,7 +215,7 @@ export class MemoListPage {
         ids.push(e.MM_ID);
       });
 
-      this.util.removeMemo(ids, () => {
+      this.util.removeMemo(ids, isFullDelete, () => {
         this.setMemoList(this.navParams.data.FD_ID);
       }, (e) => {
         alert(e)
@@ -243,8 +296,16 @@ export class MemoListPage {
       param['MM_ID'] = memo.MM_ID;
       this.navCtrl.push(PanelPage, param);
     }else {
+
+      if(this.selectedFolder.FD_ID == 'TRASH_FOLDER') {
+        this.navParams.data.FD_ID = 'BASE_FOLDER';
+        this.navParams.data.FD_NAME = '기본';
+        param.FD_NAME = '기본';
+      }
+
       this.util.createNewMemo(this.selectedFolder.FD_ID, (memoId) => {
         param['MM_ID'] = memoId;
+        param['IS_NEW'] = true;
         this.navCtrl.push(PanelPage, param);
       }, (e) => {
         alert(e)

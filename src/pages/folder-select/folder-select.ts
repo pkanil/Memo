@@ -54,6 +54,10 @@ export class FolderSelectPage {
         FD_ID: this.selectedMemoInfo.exceptFolderId
       }));
 
+      res = _.without(res, _.findWhere(res, {
+        FD_ID: 'TRASH_FOLDER'
+      }));
+
       this.selectedMemoInfo.folders = res;
     },res=>{
       alert(res);

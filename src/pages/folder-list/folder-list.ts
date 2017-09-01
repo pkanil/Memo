@@ -43,7 +43,6 @@ export class FolderListPage {
 
   ionViewWillEnter() {
 
-    console.log(111, window['plugins'])
 
     if(window['sqlitePlugin']) {
       this.setFolderList();
@@ -54,7 +53,14 @@ export class FolderListPage {
 
   setFolderList() {
     this.util.selectLocalFolderList(res=>{
-      console.log('selectLocalFolderList success : ' + JSON.stringify(res));
+      //console.log('selectLocalFolderList success : ' + JSON.stringify(res));
+
+      var trashIndex = _.findIndex(res, function (e) {
+        return e.FD_ID == 'TRASH_FOLDER';
+      });
+
+      res[trashIndex] = res.splice(res.length - 1, 1, res[trashIndex])[0];
+
       this.folders = res;
       this.complete();
     },res=>{

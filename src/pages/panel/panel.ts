@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { IonicPage, NavController, NavParams } from 'ionic-angular';
 import { UtilService } from '../../service/memo.util';
+import { Keyboard } from '@ionic-native/keyboard';
 
 import * as _ from 'underscore';
 
@@ -18,12 +19,54 @@ import * as _ from 'underscore';
 })
 export class PanelPage {
 
-  private selectedMemo = {MM_ID: '', MM_CTNT: '', FD_NAME : ''};
+  private selectedMemo = {MM_ID: '', MM_CTNT: '', FD_NAME : '', LST_MODIFY_DDTM: ''};
+  private showConfirmButton = false;
+  private _keyboard = null;
 
   constructor(public navCtrl: NavController, public navParams: NavParams,
-              private util: UtilService) {
+              private util: UtilService, private keyboard: Keyboard) {
+
+    this._keyboard = keyboard;
+
+    this.keyboard.onKeyboardShow().subscribe(
+
+      res => {
+        console.log('open 1');
+        //this.showConfirmButton = true;
+      }, //For Success Response
+      err => {
+        console.log('open 2')
+      } //For Error Response
+    );
+
+    this.keyboard.onKeyboardHide().subscribe(
+
+      res => {
+        console.log('hide 1');
+        this.showConfirmButton = false;
+      }, //For Success Response
+      err => {
+        console.log('hide 2')
+      } //For Error Response
+    )
+
+  };
+
+  onFocus() {
+    this.showConfirmButton = true;
   }
 
+  onBlur() {
+    //this.showConfirmButton = false;
+  }
+
+  removeMemo(){
+    this.util.removeMemo([this.selectedMemo.MM_ID], false, () => {
+      this.navCtrl.pop();
+    }, (e) => {
+      alert(e)
+    });
+  }
 
   ionViewDidLoad() {
 
@@ -34,10 +77,11 @@ export class PanelPage {
       this.selectedMemo = res;
       this.selectedMemo.FD_NAME = param.FD_NAME;
 
-     /* setTimeout(function(){
-        document.getElementById('memo-textarea').focus();
-      },100);*/
-
+      if(param.IS_NEW) {
+        setTimeout(function(){
+          document.getElementById('memo-textarea').focus();
+        },500);
+      }
     }, (e) => {
       alert(e);
     });

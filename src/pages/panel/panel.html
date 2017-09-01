@@ -8,11 +8,21 @@
 
   <ion-navbar>
     <ion-title>{{ selectedMemo.FD_NAME }}</ion-title>
+    <ion-buttons end>
+      <a class="complete-btn" *ngIf="showConfirmButton" (click)="_keyboard.close();">완료</a>
+    </ion-buttons>
   </ion-navbar>
 
 </ion-header>
 
 
 <ion-content padding>
-  <textarea id="memo-textarea" [(ngModel)]="selectedMemo.MM_CTNT" (keyup)="saveMemo()"></textarea>
+   <div class="date-area">{{selectedMemo.LST_MODIFY_DDTM | date: 'yyyy년 M월 d일 a hh:mm'}}</div>
+  <textarea (blur)="onBlur()" (focus)="onFocus()" id="memo-textarea" [(ngModel)]="selectedMemo.MM_CTNT" (keyup)="saveMemo()"></textarea>
 </ion-content>
+
+<ion-footer *ngIf="!showConfirmButton">
+  <ion-toolbar style="padding-left: 20px;">
+    <a (click)="removeMemo()"><ion-icon ios="ios-trash-outline" md="ios-trash-outline"></ion-icon></a>
+  </ion-toolbar>
+</ion-footer>

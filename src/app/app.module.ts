@@ -1,9 +1,8 @@
 import { BrowserModule } from '@angular/platform-browser';
-import { ErrorHandler, NgModule } from '@angular/core';
+import { ErrorHandler, NgModule, LOCALE_ID } from '@angular/core';
 import { IonicApp, IonicErrorHandler, IonicModule } from 'ionic-angular';
 import { SplashScreen } from '@ionic-native/splash-screen';
 import { StatusBar } from '@ionic-native/status-bar';
-
 import { MyApp } from './app.component';
 import { HomePage } from '../pages/home/home';
 
@@ -17,7 +16,9 @@ import { HttpModule } from '@angular/http';
 import { UtilService } from '../service/memo.util';
 import { SQLite } from '@ionic-native/sqlite';
 
+import { SearchPipe } from '../pipe/search.pipe';
 
+import { Keyboard } from '@ionic-native/keyboard';
 
 @NgModule({
   declarations: [
@@ -26,7 +27,8 @@ import { SQLite } from '@ionic-native/sqlite';
     FolderListPage,
     MemoListPage,
     PanelPage,
-    FolderSelectPage
+    FolderSelectPage,
+    SearchPipe
   ],
   imports: [
     HttpModule,
@@ -49,7 +51,9 @@ import { SQLite } from '@ionic-native/sqlite';
     SplashScreen,
     {provide: ErrorHandler, useClass: IonicErrorHandler},
     UtilService,
-    SQLite
+    SQLite,
+    Keyboard
+    //{ provide: LOCALE_ID, useValue: "ko-KR" }, //replace "en-US" with your locale
   ]
 })
 export class AppModule {}

@@ -18,10 +18,30 @@
 
 
 <ion-content>
+
+  <ion-searchbar
+    [placeholder]="'검색'"
+    [(ngModel)]="searchObj.value"
+    [showCancelButton]="false"
+    (ionInput)="searchInput($event)"
+    (ionCancel)="searchCancel($event)">
+  </ion-searchbar>
+
+  <div *ngIf="selectedFolder.FD_ID == 'TRASH_FOLDER'" class="trash-help">
+    여기서 메모를 30일간 보존한 다음 영구적으로 삭제합니다.
+  </div>
+
   <ion-list>
     <ion-item-sliding #slidingItem *ngFor="let memo of memos" (ionDrag)="itemSwipe(slidingItem)">
       <ion-item (click)="moveWriteMemo(memo)">
-        <ion-label>{{ memo.TITLE }}</ion-label>
+        <ion-label style="color: #b4b4b4;">
+          <span class="memo-title" [innerHTML]="memo.TITLE"></span>
+          <br/>
+          <span class="memo-info">
+            {{memo.LST_MODIFY_DDTM | date: 'yyyy.M.d.'}}
+            <span class="summary" [innerHTML]="memo.SUMMARY"></span>
+          </span>
+        </ion-label>
         <ion-checkbox *ngIf="showCheckbox" [(ngModel)]="memo.selected" (ionChange)="changeCheck()"></ion-checkbox>
       </ion-item>
 
@@ -38,7 +58,7 @@
 
 <ion-footer>
   <ion-toolbar>
-    <a class="new-memo-btn" *ngIf="viewMode != 'modify'" (click)="moveWriteMemo()"><ion-icon name="open"></ion-icon></a>
+    <a class="new-memo-btn" *ngIf="viewMode != 'modify'" (click)="moveWriteMemo()"><ion-icon ios="ios-create-outline" md="ios-create-outline"></ion-icon></a>
 
     <a class="del-memo-btn" *ngIf="selectedMemo.length == 0 && viewMode == 'modify'" (click)="deleteMemo('all')">모두 삭제</a>
     <a class="move-memo-btn" *ngIf="selectedMemo.length == 0 && viewMode == 'modify'" (click)="moveMemo('all')">모두 이동</a>

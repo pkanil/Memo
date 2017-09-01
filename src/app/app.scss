@@ -28,9 +28,12 @@ a.disable {
   color: #dedede;
 }
 
-.list-md > .item-wrapper:last-child .item-inner {
+.list-md > .item-wrapper:last-child .item-inner,
+.list-md > .item-block:last-child .item-inner {
   border-bottom: 1px solid #dedede;
 }
+
+
 
 .text-bold {
   font-weight: bold;
@@ -38,4 +41,8 @@ a.disable {
 
 .ft-16 {
   font-size: 16px;
+}
+
+ion-icon {
+  font-size: 28px; //Preferred size here
 }
