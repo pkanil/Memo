@@ -11,6 +11,7 @@ import { MemoListPage } from '../pages/memo-list/memo-list';
 import { PanelPage } from '../pages/panel/panel';
 
 import { FolderSelectPage } from '../pages/folder-select/folder-select';
+import { SetupPage } from '../pages/setup/setup';
 
 import { HttpModule } from '@angular/http';
 import { UtilService } from '../service/memo.util';
@@ -28,6 +29,7 @@ import { Keyboard } from '@ionic-native/keyboard';
     MemoListPage,
     PanelPage,
     FolderSelectPage,
+    SetupPage,
     SearchPipe
   ],
   imports: [
@@ -44,7 +46,8 @@ import { Keyboard } from '@ionic-native/keyboard';
     FolderListPage,
     MemoListPage,
     PanelPage,
-    FolderSelectPage
+    FolderSelectPage,
+    SetupPage
   ],
   providers: [
     StatusBar,

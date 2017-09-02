@@ -4,10 +4,12 @@ import {SQLite, SQLiteObject} from '@ionic-native/sqlite';
 import {AlertController} from 'ionic-angular';
 import {Platform} from 'ionic-angular';
 import {DatePipe} from "@angular/common";
+import { URLSearchParams } from "@angular/http"
+
 @Injectable()
 export class UtilService {
 
-  private dbName = 'memo4.db';
+  private dbName = 'memo7.db';
 
   constructor(private http: Http, private sqlite: SQLite, private platform: Platform,
               private alertCtrl: AlertController) {
@@ -24,7 +26,7 @@ export class UtilService {
           db.transaction(tx => {
             tx.executeSql('CREATE TABLE IF NOT EXISTS TBL_FOLDER (FD_ID, FD_NAME, DEFAULT_YN)');
             tx.executeSql('CREATE TABLE IF NOT EXISTS TBL_MEMO (FD_ID, MM_ID, MM_CTNT, CREATE_DDTM, LST_MODIFY_DDTM)');
-            tx.executeSql('CREATE TABLE IF NOT EXISTS TBL_TIMESTAMP (TIME_STAMP)');
+            tx.executeSql('CREATE TABLE IF NOT EXISTS TBL_USR (EMAIL, LST_MODIFY_DDTM, LOGIN_TP, ENABLE_SYNC)');
             console.log('######### [TBL_FOLDER, TBL_MEMO] table init [success]###########');
 
             this.updateTime();
@@ -46,6 +48,11 @@ export class UtilService {
                   console.log(JSON.stringify(rs))
                 }).catch(e => console.log('[TBL_FOLDER] insert default folder [error 2]' + e));
 
+                db.executeSql('INSERT INTO TBL_USR VALUES (?,?,?,?)', ['', '', '', false]).then((rs) => {
+                  console.log('######### [TBL_FOLDER] insert default folder [success] ###########');
+                  console.log(JSON.stringify(rs))
+                }).catch(e => console.log('[TBL_FOLDER] insert default user [error 2]' + e));
+
               } else {
                 db.executeSql('SELECT FD_ID, FD_NAME, DEFAULT_YN FROM TBL_FOLDER', {}).then((rs) => {
                   console.log('######### [TBL_FOLDER] select folder list [success] ###########');
@@ -59,7 +66,6 @@ export class UtilService {
   }
 
 
-
   /**
    * 메모,폴더 수정시간 업데이트
    * @param success
@@ -71,14 +77,98 @@ export class UtilService {
       name: this.dbName,
       location: 'default'
     }).then((db: SQLiteObject) => {
-      db.executeSql('UPDATE TBL_TIMESTAMP SET TIME_STAMP = ?', [time])
+      db.executeSql('UPDATE TBL_USR SET LST_MODIFY_DDTM = ?', [time])
         .then((rs) => {
-            console.log('updateTime');
+          console.log('updateTime');
         }).catch(e => {
         alert(e)
       });
     }).catch(e => {
       alert(e)
+    });
+  }
+
+  /**
+   * 로컬 사용자 조회
+   * @param success
+   * @param error
+   */
+  selectLocalUser(success: Function) {
+    this.sqlite.create({
+      name: this.dbName,
+      location: 'default'
+    }).then((db: SQLiteObject) => {
+      db.executeSql('SELECT * FROM TBL_USR', [])
+        .then((rs) => {
+
+          if (rs.rows.length == 0) {
+            success({
+              EMAIL: '',
+              LST_MODIFY_DDTM: '',
+              LOGIN_TP: '',
+              ENABLE_SYNC: false
+
+            });
+          } else {
+            success(rs.rows.item(0));
+          }
+        }).catch(e => {
+        alert(e);
+      });
+    }).catch(e => {
+      alert(e);
+    });
+  }
+
+  /**
+   * 로컬 사용자 업데이트
+   * @param success
+   * @param error
+   */
+  updateLocalUser(param: object, success: Function) {
+
+    var time = new Date().getTime();
+
+    this.sqlite.create({
+      name: this.dbName,
+      location: 'default'
+    }).then((db: SQLiteObject) => {
+
+      var sql = 'UPDATE TBL_USR SET ', setVals = ['LST_MODIFY_DDTM = ?'], qparam:Array<any> = [time];
+
+
+      if (param['EMAIL']) {
+        setVals.push('EMAIL = ?');
+        qparam.push(param['EMAIL']);
+      }
+
+      if (param['LOGIN_TP']) {
+        setVals.push('LOGIN_TP = ?');
+        qparam.push(param['LOGIN_TP']);
+      }
+
+      if (param['ENABLE_SYNC']) {
+        setVals.push('ENABLE_SYNC = ?');
+        qparam.push('true');
+      }else {
+        setVals.push('ENABLE_SYNC = ?');
+        qparam.push('false');
+      }
+
+      sql += setVals.join(',');
+
+      console.log('<<<< updateLocalUser >>>>>');
+      console.log(JSON.stringify(qparam));
+
+      db.executeSql(sql, qparam)
+        .then((rs) => {
+          success();
+          this.updateTime();
+        }).catch(e => {
+        alert(e);
+      });
+    }).catch(e => {
+      alert(e);
     });
   }
 
@@ -108,7 +198,7 @@ export class UtilService {
    * @param success
    * @param error
    */
-  updateLocalMemo(memoId: string, ctnt:string, success: Function, error: Function) {
+  updateLocalMemo(memoId: string, ctnt: string, success: Function, error: Function) {
     this.sqlite.create({
       name: this.dbName,
       location: 'default'
@@ -140,7 +230,7 @@ export class UtilService {
       location: 'default'
     }).then((db: SQLiteObject) => {
 
-      db.executeSql('DELETE FROM TBL_MEMO WHERE MM_CTNT == \'\'', []).then(()=>{
+      db.executeSql('DELETE FROM TBL_MEMO WHERE MM_CTNT == \'\'', []).then(() => {
         db.executeSql('SELECT * FROM TBL_MEMO WHERE FD_ID = ? AND MM_CTNT LIKE \'%' + searchInput + '%\' ORDER BY LST_MODIFY_DDTM DESC', [folderId])
           .then((rs) => {
             var len = rs.rows.length;
@@ -213,7 +303,7 @@ export class UtilService {
    * @param error
    */
 
-  removeMemo(memoId: Array<string>, fullDelete:boolean ,success: Function, error: Function) {
+  removeMemo(memoId: Array<string>, fullDelete: boolean, success: Function, error: Function) {
     var questionStr = [];
     for (var i = 0, cnt = memoId.length; i < cnt; i++) {
       questionStr.push('?');
@@ -227,14 +317,14 @@ export class UtilService {
       location: 'default'
     }).then((db: SQLiteObject) => {
 
-      if(fullDelete) {
+      if (fullDelete) {
         db.transaction(tx => {
           tx.executeSql('DELETE FROM TBL_MEMO WHERE MM_ID IN (' + questionStr.join(',') + ')', memoId);
         }).then(() => {
           success();
           this.updateTime();
         }).catch(e => error(e));
-      }else {
+      } else {
         db.transaction(tx => {
           tx.executeSql('UPDATE TBL_MEMO SET FD_ID = \'TRASH_FOLDER\', LST_MODIFY_DDTM=\'' + time + '\' WHERE MM_ID IN (' + questionStr.join(',') + ')', memoId);
         }).then(() => {
@@ -242,7 +332,6 @@ export class UtilService {
           this.updateTime();
         }).catch(e => error(e));
       }
-
 
 
     }).catch(e => {
@@ -273,9 +362,9 @@ export class UtilService {
       //TODO 메모도 삭제 하도록. 추가1
       db.transaction(tx => {
         tx.executeSql('DELETE FROM TBL_FOLDER WHERE FD_ID IN (' + questionStr.join(',') + ')', folderId);
-        if(type == 'both') {
+        if (type == 'both') {
           tx.executeSql('UPDATE TBL_MEMO SET FD_ID = \'TRASH_FOLDER\' WHERE FD_ID IN (' + questionStr.join(',') + ')', folderId);
-        }else {
+        } else {
           tx.executeSql('UPDATE TBL_MEMO SET FD_ID = \'BASE_FOLDER\' WHERE FD_ID IN (' + questionStr.join(',') + ')', folderId);
         }
       }).then(() => {
@@ -336,33 +425,33 @@ export class UtilService {
   }
 
   /**
- * 로컬 폴더 리스트 조회
- * @param success
- * @param error
- */
-selectLocalFolderList(success: Function, error: Function) {
-  this.sqlite.create({
-    name: this.dbName,
-    location: 'default'
-  }).then((db: SQLiteObject) => {
+   * 로컬 폴더 리스트 조회
+   * @param success
+   * @param error
+   */
+  selectLocalFolderList(success: Function, error: Function) {
+    this.sqlite.create({
+      name: this.dbName,
+      location: 'default'
+    }).then((db: SQLiteObject) => {
 
-    db.executeSql('DELETE FROM TBL_MEMO WHERE MM_CTNT == \'\'', []).then(()=>{
-      db.executeSql('SELECT T1.*, (SELECT COUNT(*) FROM TBL_MEMO WHERE FD_ID = T1.FD_ID) AS CNT FROM TBL_FOLDER T1', [])
-        .then((rs) => {
-          var len = rs.rows.length;
-          var list = [];
-          for (var i = 0; i < len; i++) {
-            list.push(rs.rows.item(i));
-          }
-          success(list);
-        }).catch(e => {
-        error(e);
+      db.executeSql('DELETE FROM TBL_MEMO WHERE MM_CTNT == \'\'', []).then(() => {
+        db.executeSql('SELECT T1.*, (SELECT COUNT(*) FROM TBL_MEMO WHERE FD_ID = T1.FD_ID) AS CNT FROM TBL_FOLDER T1', [])
+          .then((rs) => {
+            var len = rs.rows.length;
+            var list = [];
+            for (var i = 0; i < len; i++) {
+              list.push(rs.rows.item(i));
+            }
+            success(list);
+          }).catch(e => {
+          error(e);
+        });
       });
+    }).catch(e => {
+      error(e);
     });
-  }).catch(e => {
-    error(e);
-  });
-}
+  }
 
 
   /**
@@ -421,6 +510,37 @@ selectLocalFolderList(success: Function, error: Function) {
     });
   }
 
+  /**
+   * 서버 사용자 조회
+   * @param {string} email
+   * @param {Function} success
+   */
+  selectServerUser(email: string, success: Function) {
+    let data = new URLSearchParams();
+    data.append('EMAIL', email);
+    this.executeBL('memo/user_info', data, res => {
+      success(res);
+    });
+  }
+
+
+  /**
+   * 서버 사용자 추가
+   * @param {string} email
+   * @param {string} loginTp
+   * @param {Function} success
+   */
+  insertServerUser(email: string, loginTp: string, success: Function) {
+    let data = new URLSearchParams();
+    data.append('EMAIL', email);
+    data.append('LOGIN_TP', loginTp);
+    data.append('LST_MOD_TIME', new Date().getTime() + '');
+    data.append('USR_KEY', this.getUniqueId());
+
+    this.executeBL('memo/user_insert', data, res => {
+      success(res);
+    });
+  }
 
   /**
    * 서버 조회
@@ -428,8 +548,10 @@ selectLocalFolderList(success: Function, error: Function) {
    * @param param
    * @param success
    */
-  executeBL(path: string, param: any, success: Function) {
+  executeBL(path: string, param: URLSearchParams, success: Function) {
     var SERVICE_URL_PREFIX = 'http://cms.kanil.me/api/process/svc/';
+
+    console.log(SERVICE_URL_PREFIX + path + '.json');
 
     this.http.post(SERVICE_URL_PREFIX + path + '.json', param)
       .subscribe(
@@ -437,7 +559,7 @@ selectLocalFolderList(success: Function, error: Function) {
           success(res.json())
         }, //For Success Response
         err => {
-          console.error(err)
+          alert(JSON.stringify(err))
         } //For Error Response
       );
 

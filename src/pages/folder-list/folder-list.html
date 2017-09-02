@@ -39,6 +39,9 @@
 
 <ion-footer>
   <ion-toolbar>
+
+    <a class="setup-btn" *ngIf="viewMode != 'modify'" (click)="setup()">설정</a>
+
     <a class="new-folder-btn" *ngIf="viewMode != 'modify'" (click)="presentPromptNewFolder()">새로운 폴더</a>
     <a class="del-folder-btn" [ngClass]="{'disable': selectedFolder.length == 0}"
        *ngIf="viewMode == 'modify'" (click)="deleteFolder()">삭제</a>

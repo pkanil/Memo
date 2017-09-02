@@ -1,0 +1,31 @@
+<!--
+  Generated template for the SetupPage page.
+
+  See http://ionicframework.com/docs/components/#navigation for more info on
+  Ionic pages and navigation.
+-->
+<ion-header>
+
+  <ion-navbar>
+    <ion-title>설정</ion-title>
+    <ion-buttons end>
+      <a class="cancel-btn" (click)="cancel()">닫기</a>
+    </ion-buttons>
+  </ion-navbar>
+
+</ion-header>
+
+
+<ion-content>
+  <ion-list>
+    <ion-item>
+      <ion-icon ios="md-sync" md="md-sync" item-start></ion-icon>
+      <ion-label>
+        동기화 계정 연결<br/>
+        <span class="sync-account">pvsp505@gamil.com</span>
+      </ion-label>
+      <ion-toggle [(ngModel)]="setupInfo.user.ENABLE_SYNC" (ionChange)="updateSync()"></ion-toggle>
+    </ion-item>
+  </ion-list>
+
+</ion-content>

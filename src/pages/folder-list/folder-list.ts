@@ -5,6 +5,10 @@ import { AlertController } from 'ionic-angular';
 import { MemoListPage } from '../memo-list/memo-list';
 import { URLSearchParams } from "@angular/http"
 import {Platform} from 'ionic-angular';
+import { ModalController } from 'ionic-angular';
+
+import {SetupPage} from "../setup/setup";
+
 
 import * as _ from 'underscore';
 
@@ -24,7 +28,7 @@ export class FolderListPage {
 
   constructor(private navCtrl: NavController, private navParams: NavParams,
               private util: UtilService, private alertCtrl: AlertController,
-              private platform: Platform) {
+              private platform: Platform, private modalCtrl: ModalController) {
 
 
     this.platform.ready().then(() => {
@@ -39,6 +43,25 @@ export class FolderListPage {
   private showCheckbox = false;
   private selectedFolder = [];
   private slidingItem;
+
+
+  setup(){
+
+    this.util.selectLocalUser(res => {
+      console.log('selectLocalUser : ' + JSON.stringify(res));
+
+      let myModal = this.modalCtrl.create(SetupPage, res);
+
+      myModal.onDidDismiss(() => {
+        // Call the method to do whatever in your home.ts
+        console.log('Modal closed');
+        //this.setMemoList(this.navParams.data.FD_ID);
+      });
+      myModal.present();
+    });
+
+
+  }
 
 
   ionViewWillEnter() {

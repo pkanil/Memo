@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "543731059348",
+    "project_id": "firebase-imemo"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:543731059348:android:51999b332bfba913",
+        "android_client_info": {
+          "package_name": "io.kanil.imemo"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "543731059348-r64j8fn0nedp1tgitqvig5qqmj0m5qs6.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "io.kanil.imemo",
+            "certificate_hash": "c7d6c0b99dc0a296e57a41fffe31756627298634"
+          }
+        },
+        {
+          "client_id": "543731059348-mbvg3cu1enda4mtbtbe3bd3j0iuii37d.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDURE2dx1huPPytszS4WNKJgYNjrOPoeOQ"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 1,
+          "other_platform_oauth_client": []
+        },
+        "ads_service": {
+          "status": 1
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

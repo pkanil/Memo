@@ -27,9 +27,9 @@
     (ionCancel)="searchCancel($event)">
   </ion-searchbar>
 
-  <div *ngIf="selectedFolder.FD_ID == 'TRASH_FOLDER'" class="trash-help">
+  <!--<div *ngIf="selectedFolder.FD_ID == 'TRASH_FOLDER'" class="trash-help">
     여기서 메모를 30일간 보존한 다음 영구적으로 삭제합니다.
-  </div>
+  </div>-->
 
   <ion-list>
     <ion-item-sliding #slidingItem *ngFor="let memo of memos" (ionDrag)="itemSwipe(slidingItem)">
