@@ -7,7 +7,10 @@
 <ion-header>
 
   <ion-navbar>
-    <ion-title>{{ selectedFolder.length > 0 ? selectedFolder.length + '개 선택됨' : '폴더' }}</ion-title>
+    <ion-title>
+      {{ selectedFolder.length > 0 ? selectedFolder.length + '개 선택됨' : '폴더' }}
+      <ion-spinner *ngIf="$rootScope.syncing" style="margin-top: 5px;" name="ios-small"></ion-spinner>
+    </ion-title>
     <ion-buttons end>
       <a class="modify-btn" *ngIf="viewMode == 'list'" (click)="modify()">편집</a>
       <a class="complete-btn" *ngIf="viewMode == 'modify'" (click)="complete()">취소</a>

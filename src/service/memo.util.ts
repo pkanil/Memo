@@ -6,17 +6,51 @@ import {Platform} from 'ionic-angular';
 import {DatePipe} from "@angular/common";
 import { URLSearchParams } from "@angular/http"
 import * as _ from 'underscore';
-
+import { InAppPurchase } from '@ionic-native/in-app-purchase';
 @Injectable()
 export class UtilService {
 
   private dbName = 'memo7.db';
 
-  constructor(private http: Http, private sqlite: SQLite, private platform: Platform,
-              private alertCtrl: AlertController) {
+  public $rootScope = {
+    syncing : false,
+    lastModTime: 0,
+    $this : null,
+    reload: function(){
+      console.log('reload');
+    }
+  };
 
+  constructor(private http: Http, private sqlite: SQLite, private platform: Platform,
+              private alertCtrl: AlertController, private iap: InAppPurchase) {
+
+    this.$rootScope.lastModTime = new Date().getTime();
 
     this.platform.ready().then(() => {
+
+
+    /*this.iap
+        .getProducts(['memo.sync01'])
+        .then((products) => {
+          console.log('getProducts success : ' + JSON.stringify(products));
+          //  [{ productId: 'com.yourapp.prod1', 'title': '...', description: '...', price: '...' }, ...]
+
+          this.iap
+            .buy('memo.sync01')
+            .then(data => {
+              alert('구매 성공!');
+              //this.iap.consume(data.productType, data.receipt, data.signature);
+            })
+            .then(() => alert('product was successfully consumed!'))
+            .catch( err=> alert('구매에러 : ' + JSON.stringify(err)));
+
+        })
+        .catch((err) => {
+          alert('getProducts err ' + err);
+        });*/
+
+
+
 
       this.sqlite.create({
         name: this.dbName,
@@ -66,7 +100,7 @@ export class UtilService {
 
       window.setTimeout(() => {
         this.syncServer()
-      }, 1000 * 5);
+      }, 1000 * 10);
 
     })
 
@@ -80,6 +114,7 @@ export class UtilService {
    */
   updateTime() {
     var time = new Date().getTime();
+    this.$rootScope.lastModTime = time;
     this.sqlite.create({
       name: this.dbName,
       location: 'default'
@@ -592,10 +627,23 @@ export class UtilService {
 
     console.log('<<<<<<<<<<<<<<< syncServer >>>>>>>>>>>>>>');
 
+    var _time = new Date().getTime();
+
+    if ((_time - this.$rootScope.lastModTime) > (1000 * 60)) {
+      console.log('60초이상 멈춰있음. 스킵.');
+      window.setTimeout(() => {
+        this.syncServer()
+      }, 1000 * 10);
+      return;
+    }
+
 
     this.selectLocalUser(localData => {
       console.log('<<<<<<<<<<<<<<< syncServer >>>>>>>>>>>>>>' + localData.ENABLE_SYNC);
+
       if (localData.ENABLE_SYNC === 'true') {
+
+        this.$rootScope.syncing = true;
 
         var localUserKey = localData.USR_KEY;
         var localEmail = localData.EMAIL;
@@ -610,17 +658,19 @@ export class UtilService {
 
           if(!serverModTime && !localModTime) {
             console.log('서버 조회 오류');
+            this.$rootScope.syncing = false;
             window.setTimeout(() => {
               this.syncServer()
-            }, 1000 * 5);
+            }, 1000 * 10);
             return;
           }
 
           if (serverModTime == localModTime) {
             console.log('동기화 필요 없음');
+            this.$rootScope.syncing = false;
             window.setTimeout(() => {
               this.syncServer()
-            }, 1000 * 5);
+            }, 1000 * 10);
             return;
           }
 
@@ -671,38 +721,41 @@ export class UtilService {
 
                       this.executeBL('memo/sync', data, res=>{
 
-                        console.log('aaaaaaaaaaaaaaaaaaaaaaaa');
-
+                        console.log('서버에 전송 성공 : ' + res.LST_MOD_TIME);
+                        this.$rootScope.syncing = false;
                         window.setTimeout(() => {
                           this.syncServer()
-                        }, 1000 * 5);
+                        }, 1000 * 10);
                       });
 
                     }).catch(e => {
                     alert(e);
+                    this.$rootScope.syncing = false;
                     window.setTimeout(() => {
                       this.syncServer()
-                    }, 1000 * 5);
+                    }, 1000 * 10);
                   });
 
                 }).catch(e => {
                 alert(e);
+                this.$rootScope.syncing = false;
                 window.setTimeout(() => {
                   this.syncServer()
-                }, 1000 * 5);
+                }, 1000 * 10);
               });
 
             }).catch(e => {
               alert(e);
+              this.$rootScope.syncing = false;
               window.setTimeout(() => {
                 this.syncServer()
-              }, 1000 * 5);
+              }, 1000 * 10);
             });
           }else {
             /*console.log('추후 개발');
             window.setTimeout(() => {
               this.syncServer()
-            }, 1000 * 5);*/
+            }, 1000 * 10);*/
 
             let data = new URLSearchParams();
             data.append('USR_KEY', localUserKey);
@@ -714,11 +767,14 @@ export class UtilService {
               console.log(this.decompressFromBase64(temp));
 
               this.importServerData(JSON.parse(this.decompressFromBase64(temp)), serverModTime);
-
+              this.$rootScope.syncing = false;
+              if(_.isFunction(this.$rootScope.reload)) {
+                this.$rootScope.reload.apply(this.$rootScope.$this);
+              }
 
               window.setTimeout(() => {
                 this.syncServer()
-              }, 1000 * 5);
+              }, 1000 * 10);
 
             });
 
@@ -779,7 +835,8 @@ export class UtilService {
     }).then((db: SQLiteObject) => {
 
       db.sqlBatch(sqls).then(res=>{
-        console.log('import 성공!!')
+        console.log('import 성공!!');
+        //this.navCtrl.setRoot(this.navCtrl.getActive().component);
       }).catch(e => {
         alert('import 실패!!');
       });

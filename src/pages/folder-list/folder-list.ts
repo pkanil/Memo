@@ -30,6 +30,10 @@ export class FolderListPage {
               private util: UtilService, private alertCtrl: AlertController,
               private platform: Platform, private modalCtrl: ModalController) {
 
+    this.$rootScope = util.$rootScope;
+
+    this.$rootScope.$this = this;
+
 
     this.platform.ready().then(() => {
       this.setFolderList();
@@ -37,6 +41,8 @@ export class FolderListPage {
 
 
   }
+
+  private $rootScope;
 
   private folders = [];
   private viewMode = 'list';
@@ -69,6 +75,9 @@ export class FolderListPage {
 
     //alert('ionViewWillEnter')
 
+    this.$rootScope.lastModTime = new Date().getTime();
+
+    this.$rootScope.reload = this.ionViewWillEnter;
 
     if(window['sqlitePlugin']) {
       this.setFolderList();
@@ -85,7 +94,12 @@ export class FolderListPage {
         return e.FD_ID == 'TRASH_FOLDER';
       });
 
+      var baseIndex = _.findIndex(res, function (e) {
+        return e.FD_ID == 'BASE_FOLDER';
+      });
+
       res[trashIndex] = res.splice(res.length - 1, 1, res[trashIndex])[0];
+      res[baseIndex] = res.splice(0, 1, res[baseIndex])[0];
 
       this.folders = res;
       this.complete();

@@ -22,9 +22,13 @@ export class PanelPage {
   private selectedMemo = {MM_ID: '', MM_CTNT: '', FD_NAME : '', LST_MODIFY_DDTM: ''};
   private showConfirmButton = false;
   private _keyboard = null;
+  private $rootScope;
 
   constructor(public navCtrl: NavController, public navParams: NavParams,
               private util: UtilService, private keyboard: Keyboard) {
+
+    this.$rootScope = util.$rootScope;
+    this.$rootScope.$this = this;
 
     this._keyboard = keyboard;
 
@@ -68,7 +72,11 @@ export class PanelPage {
     });
   }
 
-  ionViewDidLoad() {
+  ionViewWillEnter() {
+
+    this.$rootScope.lastModTime = new Date().getTime();
+
+    this.$rootScope.reload = this.ionViewWillEnter;
 
     var param = this.navParams.data;
     var memoId = param.MM_ID;

@@ -1,6 +1,6 @@
 import { BrowserModule } from '@angular/platform-browser';
 import { ErrorHandler, NgModule, LOCALE_ID } from '@angular/core';
-import { IonicApp, IonicErrorHandler, IonicModule } from 'ionic-angular';
+import { IonicApp, IonicErrorHandler, IonicModule, NavController } from 'ionic-angular';
 import { SplashScreen } from '@ionic-native/splash-screen';
 import { StatusBar } from '@ionic-native/status-bar';
 import { MyApp } from './app.component';
@@ -20,7 +20,7 @@ import { SQLite } from '@ionic-native/sqlite';
 import { SearchPipe } from '../pipe/search.pipe';
 
 import { Keyboard } from '@ionic-native/keyboard';
-
+import { InAppPurchase } from '@ionic-native/in-app-purchase';
 
 @NgModule({
   declarations: [
@@ -56,7 +56,8 @@ import { Keyboard } from '@ionic-native/keyboard';
     {provide: ErrorHandler, useClass: IonicErrorHandler},
     UtilService,
     SQLite,
-    Keyboard
+    Keyboard,
+    InAppPurchase
     //{ provide: LOCALE_ID, useValue: "ko-KR" }, //replace "en-US" with your locale
   ]
 })

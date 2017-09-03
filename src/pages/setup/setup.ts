@@ -2,6 +2,7 @@ import {Component} from '@angular/core';
 import {IonicPage, NavController, NavParams, ViewController} from 'ionic-angular';
 import {GooglePlus} from 'ionic-native';
 import { UtilService } from '../../service/memo.util';
+import { InAppPurchase } from '@ionic-native/in-app-purchase';
 
 
 /**
@@ -19,7 +20,7 @@ import { UtilService } from '../../service/memo.util';
 export class SetupPage {
 
   constructor(public navCtrl: NavController, public navParams: NavParams,
-              private viewCtrl: ViewController, private util: UtilService ) {
+              private viewCtrl: ViewController, private util: UtilService, private iap: InAppPurchase ) {
   }
 
   private setupInfo = {
@@ -47,7 +48,48 @@ export class SetupPage {
 
           this.util.selectServerUser(email, res=>{
             if(!res.USR_KEY) {
-              if(confirm('결재 고고?')) {
+
+
+              this.iap
+                .getProducts(['memo.sync01'])
+                .then((products) => {
+                  console.log('getProducts success : ' + JSON.stringify(products));
+                  //  [{ productId: 'com.yourapp.prod1', 'title': '...', description: '...', price: '...' }, ...]
+
+                  this.iap
+                    .buy('memo.sync01')
+                    .then(data => {
+                      //alert('구매 성공!');
+                      //this.iap.consume(data.productType, data.receipt, data.signature);
+
+                      this.util.insertServerUser(email, 'G', res=>{
+                        this.util.updateLocalUser({
+                          EMAIL: email,
+                          LOGIN_TP: 'G',
+                          USR_KEY: res.USR_KEY,
+                          ENABLE_SYNC: true
+                        }, res => {
+                          console.log('updateSync true');
+                          this.setupInfo.user.ENABLE_SYNC = true;
+                        });
+                      });
+
+                    })
+                    .then(() => {
+                      //alert('product was successfully consumed!')
+                    }).catch(err => {
+                    alert('구매중 오류가 발생했습니다.\n' + JSON.stringify(err));
+                    this.setupInfo.user.ENABLE_SYNC = false;
+                  });
+
+                })
+                .catch((err) => {
+                  alert('구매중 오류가 발생했습니다.\n' + JSON.stringify(err));
+                  this.setupInfo.user.ENABLE_SYNC = false;
+                });
+
+
+              /*if(confirm('결재 고고?')) {
                 this.util.insertServerUser(email, 'G', res=>{
                   this.util.updateLocalUser({
                     EMAIL: email,
@@ -59,9 +101,10 @@ export class SetupPage {
                     this.setupInfo.user.ENABLE_SYNC = true;
                   });
                 });
+
               }else {
                 this.setupInfo.user.ENABLE_SYNC = false;
-              }
+              }*/
 
             }else {
               this.util.updateLocalUser({

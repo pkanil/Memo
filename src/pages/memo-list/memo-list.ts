@@ -26,8 +26,12 @@ export class MemoListPage {
   constructor(private navCtrl: NavController, private navParams: NavParams,
               private util: UtilService, private alertCtrl: AlertController,
               private modalCtrl: ModalController) {
-  }
 
+    this.$rootScope = util.$rootScope;
+    this.$rootScope.$this = this;
+
+  }
+  private $rootScope;
   private memos = [];
   private viewMode = 'list';
   private showCheckbox = false;
@@ -139,9 +143,13 @@ export class MemoListPage {
 
   ionViewWillEnter() {
 
+    this.$rootScope.lastModTime = new Date().getTime();
+
     this.selectedFolder = this.navParams.data;
 
     this.setMemoList(this.navParams.data.FD_ID);
+
+    this.$rootScope.reload = this.ionViewWillEnter;
 
     /*let data = new URLSearchParams();
      data.append('FOLDER_ID', this.navParams.data.FD_ID);
