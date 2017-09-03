@@ -77,7 +77,7 @@ export class FolderListPage {
 
     this.$rootScope.lastModTime = new Date().getTime();
 
-    this.$rootScope.reload = this.ionViewWillEnter;
+    this.$rootScope.reload = this.setFolderList;
 
     if(window['sqlitePlugin']) {
       this.setFolderList();
