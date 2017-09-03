@@ -22,7 +22,7 @@
       <ion-icon ios="md-sync" md="md-sync" item-start></ion-icon>
       <ion-label>
         동기화 계정 연결<br/>
-        <span class="sync-account">pvsp505@gamil.com</span>
+        <span class="sync-account">{{setupInfo.user.EMAIL}}</span>
       </ion-label>
       <ion-toggle [(ngModel)]="setupInfo.user.ENABLE_SYNC" (ionChange)="updateSync()"></ion-toggle>
     </ion-item>

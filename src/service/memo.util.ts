@@ -5,6 +5,7 @@ import {AlertController} from 'ionic-angular';
 import {Platform} from 'ionic-angular';
 import {DatePipe} from "@angular/common";
 import { URLSearchParams } from "@angular/http"
+import * as _ from 'underscore';
 
 @Injectable()
 export class UtilService {
@@ -26,10 +27,10 @@ export class UtilService {
           db.transaction(tx => {
             tx.executeSql('CREATE TABLE IF NOT EXISTS TBL_FOLDER (FD_ID, FD_NAME, DEFAULT_YN)');
             tx.executeSql('CREATE TABLE IF NOT EXISTS TBL_MEMO (FD_ID, MM_ID, MM_CTNT, CREATE_DDTM, LST_MODIFY_DDTM)');
-            tx.executeSql('CREATE TABLE IF NOT EXISTS TBL_USR (EMAIL, LST_MODIFY_DDTM, LOGIN_TP, ENABLE_SYNC)');
+            tx.executeSql('CREATE TABLE IF NOT EXISTS TBL_USR (EMAIL, USR_KEY, LST_MODIFY_DDTM, LOGIN_TP, ENABLE_SYNC)');
             console.log('######### [TBL_FOLDER, TBL_MEMO] table init [success]###########');
 
-            this.updateTime();
+            //this.updateTime();
 
           }).catch(e => console.log('[TBL_FOLDER, TBL_MEMO]table init [error] : ' + e));
 
@@ -48,7 +49,7 @@ export class UtilService {
                   console.log(JSON.stringify(rs))
                 }).catch(e => console.log('[TBL_FOLDER] insert default folder [error 2]' + e));
 
-                db.executeSql('INSERT INTO TBL_USR VALUES (?,?,?,?)', ['', '', '', false]).then((rs) => {
+                db.executeSql('INSERT INTO TBL_USR VALUES (?,?,?,?,?)', ['', '', '', '', false]).then((rs) => {
                   console.log('######### [TBL_FOLDER] insert default folder [success] ###########');
                   console.log(JSON.stringify(rs))
                 }).catch(e => console.log('[TBL_FOLDER] insert default user [error 2]' + e));
@@ -61,6 +62,12 @@ export class UtilService {
               }
             }).catch(e => console.log('[TBL_FOLDER] insert default folder [error 4]: ' + e));
         }).catch(e => console.log(e));
+
+
+      window.setTimeout(() => {
+        this.syncServer()
+      }, 1000 * 5);
+
     })
 
   }
@@ -104,6 +111,7 @@ export class UtilService {
           if (rs.rows.length == 0) {
             success({
               EMAIL: '',
+              USR_KEY : '',
               LST_MODIFY_DDTM: '',
               LOGIN_TP: '',
               ENABLE_SYNC: false
@@ -134,8 +142,18 @@ export class UtilService {
       location: 'default'
     }).then((db: SQLiteObject) => {
 
-      var sql = 'UPDATE TBL_USR SET ', setVals = ['LST_MODIFY_DDTM = ?'], qparam:Array<any> = [time];
+      var sql = 'UPDATE TBL_USR SET ', setVals = [], qparam:Array<any> = [];
 
+
+      if (param['USR_KEY']) {
+        setVals.push('USR_KEY = ?');
+        qparam.push(param['USR_KEY']);
+      }
+
+      if (param['LST_MODIFY_DDTM']) {
+        setVals.push('LST_MODIFY_DDTM = ?');
+        qparam.push(time);
+      }
 
       if (param['EMAIL']) {
         setVals.push('EMAIL = ?');
@@ -163,7 +181,12 @@ export class UtilService {
       db.executeSql(sql, qparam)
         .then((rs) => {
           success();
-          this.updateTime();
+          //this.updateTime();
+
+          if(param['ENABLE_SYNC'] === true) {
+            this.syncServer();
+          }
+
         }).catch(e => {
         alert(e);
       });
@@ -534,8 +557,7 @@ export class UtilService {
     let data = new URLSearchParams();
     data.append('EMAIL', email);
     data.append('LOGIN_TP', loginTp);
-    data.append('LST_MOD_TIME', new Date().getTime() + '');
-    data.append('USR_KEY', this.getUniqueId());
+    data.append('LST_MOD_TIME', '1');
 
     this.executeBL('memo/user_insert', data, res => {
       success(res);
@@ -565,8 +587,529 @@ export class UtilService {
 
   }
 
+
+  syncServer(){
+
+    console.log('<<<<<<<<<<<<<<< syncServer >>>>>>>>>>>>>>');
+
+
+    this.selectLocalUser(localData => {
+      console.log('<<<<<<<<<<<<<<< syncServer >>>>>>>>>>>>>>' + localData.ENABLE_SYNC);
+      if (localData.ENABLE_SYNC === 'true') {
+
+        var localUserKey = localData.USR_KEY;
+        var localEmail = localData.EMAIL;
+        var localModTime = localData.LST_MODIFY_DDTM;
+
+        this.selectServerUser(localEmail, serverData => {
+          var serverModTime = serverData.LST_MOD_TIME || 1;
+
+
+          console.log('[localModTime] : ' + localModTime);
+          console.log('[serverModTime] : ' + serverModTime);
+
+          if(!serverModTime && !localModTime) {
+            console.log('서버 조회 오류');
+            window.setTimeout(() => {
+              this.syncServer()
+            }, 1000 * 5);
+            return;
+          }
+
+          if (serverModTime == localModTime) {
+            console.log('동기화 필요 없음');
+            window.setTimeout(() => {
+              this.syncServer()
+            }, 1000 * 5);
+            return;
+          }
+
+          var newerData = 'server';
+          if(localModTime && (localModTime > serverModTime)) {
+            newerData = 'local';
+          }
+
+          if(newerData == 'local') {
+
+            var localData = {
+              FOLDER : [],
+              MEMOS : []
+            };
+
+            this.sqlite.create({
+              name: this.dbName,
+              location: 'default'
+            }).then((db: SQLiteObject) => {
+
+
+              db.executeSql('SELECT * FROM TBL_FOLDER', [])
+                .then((rs) => {
+                  var len = rs.rows.length;
+                  for (var i = 0; i < len; i++) {
+                    localData.FOLDER.push(rs.rows.item(i));
+                  }
+
+                  db.executeSql('SELECT * FROM TBL_MEMO', [])
+                    .then((rs) => {
+                      var len = rs.rows.length;
+                      for (var i = 0; i < len; i++) {
+                        localData.MEMOS.push(rs.rows.item(i));
+                      }
+
+                      console.log(' >>>>>>>>>>>>> LOCAL DATA <<<<<<<<<<<<<<<');
+                      //console.log(JSON.stringify(localData));
+
+                      var inputStr = this.comporess(JSON.stringify(localData));
+                      //webponent.export.util.compress.LZString.decompressFromBase64(inputStr))
+
+                      console.log(inputStr);
+
+                      let data = new URLSearchParams();
+                      data.append('USR_KEY', localUserKey);
+                      data.append('LST_MOD_TIME', localModTime);
+                      data.append('inputStr', inputStr);
+
+                      this.executeBL('memo/sync', data, res=>{
+
+                        console.log('aaaaaaaaaaaaaaaaaaaaaaaa');
+
+                        window.setTimeout(() => {
+                          this.syncServer()
+                        }, 1000 * 5);
+                      });
+
+                    }).catch(e => {
+                    alert(e);
+                    window.setTimeout(() => {
+                      this.syncServer()
+                    }, 1000 * 5);
+                  });
+
+                }).catch(e => {
+                alert(e);
+                window.setTimeout(() => {
+                  this.syncServer()
+                }, 1000 * 5);
+              });
+
+            }).catch(e => {
+              alert(e);
+              window.setTimeout(() => {
+                this.syncServer()
+              }, 1000 * 5);
+            });
+          }else {
+            /*console.log('추후 개발');
+            window.setTimeout(() => {
+              this.syncServer()
+            }, 1000 * 5);*/
+
+            let data = new URLSearchParams();
+            data.append('USR_KEY', localUserKey);
+
+            this.executeBL('memo/selectServerData', data, res => {
+              var temp = res.RESULT;
+
+              console.log('<<<<<<<<import>>>>>>>>>');
+              console.log(this.decompressFromBase64(temp));
+
+              this.importServerData(JSON.parse(this.decompressFromBase64(temp)), serverModTime);
+
+
+              window.setTimeout(() => {
+                this.syncServer()
+              }, 1000 * 5);
+
+            });
+
+
+          }
+
+        });
+      }else {
+
+        console.log('동기화 안함.');
+       /* window.setTimeout(() => {
+          this.syncServer()
+        }, 1000 * 20);*/
+      }
+    });
+  }
+
   getUniqueId() {
     return Math.random().toString(16).substring(2);
+  }
+
+
+
+  importServerData(data:object, serverModTime:string) {
+
+    var folders = data['FOLDER'];
+    var memos = data['MEMO'];
+
+    var insertFolderSqls = [];
+    var insertMemosSqls = [];
+
+    _.each(memos, function (e, i) {
+      insertMemosSqls.push(
+        [ 'INSERT INTO TBL_MEMO VALUES (?, ?, ?, ? ,?)', [e.M_FD_ID, e.MM_ID, e.MM_CTNT, e.CREATE_DDTM, e.LST_MODIFY_DDTM] ]
+      );
+    });
+
+    _.each(folders, function (e, i) {
+      insertFolderSqls.push(
+        [ 'INSERT INTO TBL_FOLDER VALUES (?,?,?)', [e.FD_ID, e.FD_NAME, e.DEFAULT_YN] ]
+      );
+    });
+
+    //console.log(insertMemosSqls);
+    //console.log(insertFolderSqls);
+
+    var sqls = [['DELETE FROM TBL_MEMO', []], ['DELETE FROM TBL_FOLDER', []]];
+
+    sqls = sqls.concat(insertMemosSqls);
+    sqls = sqls.concat(insertFolderSqls);
+
+    sqls.push(['UPDATE TBL_USR SET LST_MODIFY_DDTM = ?', [serverModTime]]);
+
+
+    this.sqlite.create({
+      name: this.dbName,
+      location: 'default'
+    }).then((db: SQLiteObject) => {
+
+      db.sqlBatch(sqls).then(res=>{
+        console.log('import 성공!!')
+      }).catch(e => {
+        alert('import 실패!!');
+      });
+
+    }).catch(e => {
+      alert(e);
+    });
+
+  }
+
+
+
+
+
+
+
+
+  comporess(input:string){
+
+    var base64Characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+
+
+    if (input == null) return "";
+    var output = "";
+    var chr1, chr2, chr3, enc1, enc2, enc3, enc4;
+    var i = 0;
+
+    input = compress(input);
+
+    while (i < input.length * 2) {
+
+      if (i % 2 == 0) {
+        chr1 = input.charCodeAt(i / 2) >> 8;
+        chr2 = input.charCodeAt(i / 2) & 255;
+        if (i / 2 + 1 < input.length)
+          chr3 = input.charCodeAt(i / 2 + 1) >> 8;
+        else
+          chr3 = NaN;
+      } else {
+        chr1 = input.charCodeAt((i - 1) / 2) & 255;
+        if ((i + 1) / 2 < input.length) {
+          chr2 = input.charCodeAt((i + 1) / 2) >> 8;
+          chr3 = input.charCodeAt((i + 1) / 2) & 255;
+        } else
+          chr2 = chr3 = NaN;
+      }
+      i += 3;
+
+      enc1 = chr1 >> 2;
+      enc2 = ((chr1 & 3) << 4) | (chr2 >> 4);
+      enc3 = ((chr2 & 15) << 2) | (chr3 >> 6);
+      enc4 = chr3 & 63;
+
+      if (isNaN(chr2)) {
+        enc3 = enc4 = 64;
+      } else if (isNaN(chr3)) {
+        enc4 = 64;
+      }
+
+      output = output +
+        base64Characters[enc1] + base64Characters[enc2] +
+        base64Characters[enc3] + base64Characters[enc4];
+
+    }
+
+    function compress(uncompressed) {
+
+      if (uncompressed === null || uncompressed === undefined) {
+        return '';
+      }
+
+      var context = {
+        dictionary: {},
+        dictionaryToCreate: {},
+        c: "",
+        wc: "",
+        w: "",
+        enlargeIn: 2, // Compensate for the first entry which should not count
+        dictSize: 3,
+        numBits: 2,
+        result: "",
+        data: {string: "", val: 0, position: 0}
+      }, i;
+
+      for (i = 0; i < uncompressed.length; i += 1) {
+        context.c = uncompressed.charAt(i);
+        if (!context.dictionary[context.c]) {
+          context.dictionary[context.c] = context.dictSize++;
+          context.dictionaryToCreate[context.c] = true;
+        }
+
+        context.wc = context.w + context.c;
+        if (context.dictionary[context.wc]) {
+          context.w = context.wc;
+        } else {
+          produceW(context);
+          // Add wc to the dictionary.
+          context.dictionary[context.wc] = context.dictSize++;
+          context.w = String(context.c);
+        }
+      }
+
+      // Output the code for w.
+      if (context.w !== "") {
+        produceW(context);
+      }
+
+      // Mark the end of the stream
+      writeBits(context.numBits, 2, context.data);
+
+      // Flush the last char
+      while (true) {
+        context.data.val = (context.data.val << 1);
+        if (context.data.position == 15) {
+          context.data.string += String.fromCharCode(context.data.val);
+          break;
+        }
+        else context.data.position++;
+      }
+
+      return context.data.string;
+    }
+
+    function writeBit(value, data) {
+      data.val = (data.val << 1) | value;
+      if (data.position == 15) {
+        data.position = 0;
+        data.string += String.fromCharCode(data.val);
+        data.val = 0;
+      } else {
+        data.position++;
+      }
+    }
+
+    function writeBits(numBits, value, data) {
+      if (typeof(value) == "string")
+        value = value.charCodeAt(0);
+      for (var i = 0; i < numBits; i++) {
+        writeBit(value & 1, data);
+        value = value >> 1;
+      }
+    }
+
+    function produceW(context) {
+      if (context.dictionaryToCreate[context.w]) {
+        if (context.w.charCodeAt(0) < 256) {
+          writeBits(context.numBits, 0, context.data);
+          writeBits(8, context.w, context.data);
+        } else {
+          writeBits(context.numBits, 1, context.data);
+          writeBits(16, context.w, context.data);
+        }
+        decrementEnlargeIn(context);
+        delete context.dictionaryToCreate[context.w];
+      } else {
+        writeBits(context.numBits, context.dictionary[context.w], context.data);
+      }
+      decrementEnlargeIn(context);
+    }
+
+    function decrementEnlargeIn(context) {
+      context.enlargeIn--;
+      if (context.enlargeIn == 0) {
+        context.enlargeIn = Math.pow(2, context.numBits);
+        context.numBits++;
+      }
+    }
+
+    return output.replace(/=/g, "$").replace(/\//g, "-");;
+  }
+
+
+  decompressFromBase64(input:string) {
+    var base64Characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+    if (input == null) return "";
+    var output = "",
+      ol = 0,
+      output_ = null,
+      chr1, chr2, chr3,
+      enc1, enc2, enc3, enc4,
+      i = 0;
+
+    input = input.replace(/[^A-Za-z0-9\+\/=]/g, "");
+
+    while (i < input.length) {
+
+      enc1 = base64Characters.indexOf(input[i++]);
+      enc2 = base64Characters.indexOf(input[i++]);
+      enc3 = base64Characters.indexOf(input[i++]);
+      enc4 = base64Characters.indexOf(input[i++]);
+
+      chr1 = (enc1 << 2) | (enc2 >> 4);
+      chr2 = ((enc2 & 15) << 4) | (enc3 >> 2);
+      chr3 = ((enc3 & 3) << 6) | enc4;
+
+      if (ol % 2 == 0) {
+        output_ = chr1 << 8;
+
+        if (enc3 != 64) {
+          output += String.fromCharCode(output_ | chr2);
+        }
+        if (enc4 != 64) {
+          output_ = chr3 << 8;
+        }
+      } else {
+        output = output + String.fromCharCode(output_ | chr1);
+
+        if (enc3 != 64) {
+          output_ = chr2 << 8;
+        }
+        if (enc4 != 64) {
+          output += String.fromCharCode(output_ | chr3);
+        }
+      }
+      ol += 3;
+    }
+
+
+    function decompress(compressed) {
+
+      if (compressed === '') {
+        return null;
+      }
+
+      if (compressed === null || compressed === undefined) {
+        return '';
+      }
+
+      var dictionary = {},
+        next,
+        enlargeIn = 4,
+        dictSize = 4,
+        numBits = 3,
+        entry = "",
+        result,
+        i,
+        w,
+        c,
+        errorCount = 0,
+        data = {string: compressed, val: compressed.charCodeAt(0), position: 32768, index: 1};
+
+      for (i = 0; i < 3; i += 1) {
+        dictionary[i] = i;
+      }
+
+      next = readBits(2, data);
+      switch (next) {
+        case 0:
+          c = String.fromCharCode(readBits(8, data));
+          break;
+        case 1:
+          c = String.fromCharCode(readBits(16, data));
+          break;
+        case 2:
+          return "";
+      }
+      dictionary[3] = c;
+      w = result = c;
+      while (true) {
+        c = readBits(numBits, data);
+
+        switch (c) {
+          case 0:
+            if (errorCount++ > 10000) return "Error";
+            c = String.fromCharCode(readBits(8, data));
+            dictionary[dictSize++] = c;
+            c = dictSize - 1;
+            enlargeIn--;
+            break;
+          case 1:
+            c = String.fromCharCode(readBits(16, data));
+            dictionary[dictSize++] = c;
+            c = dictSize - 1;
+            enlargeIn--;
+            break;
+          case 2:
+            return result;
+        }
+
+        if (enlargeIn == 0) {
+          enlargeIn = Math.pow(2, numBits);
+          numBits++;
+        }
+
+        if (dictionary[c]) {
+          entry = dictionary[c];
+        } else {
+          if (c === dictSize) {
+            entry = w + w.charAt(0);
+          } else {
+            return null;
+          }
+        }
+        result += entry;
+
+        // Add w+entry[0] to the dictionary.
+        dictionary[dictSize++] = w + entry.charAt(0);
+        enlargeIn--;
+
+        w = entry;
+
+        if (enlargeIn == 0) {
+          enlargeIn = Math.pow(2, numBits);
+          numBits++;
+        }
+      }
+    }
+
+    function readBit(data) {
+      var res = data.val & data.position;
+      data.position >>= 1;
+      if (data.position == 0) {
+        data.position = 32768;
+        data.val = data.string.charCodeAt(data.index++);
+      }
+      return res > 0 ? 1 : 0;
+    }
+
+    function readBits(numBits, data) {
+      var res = 0;
+      var maxpower = Math.pow(2, numBits);
+      var power = 1;
+      while (power != maxpower) {
+        res |= readBit(data) * power;
+        power <<= 1;
+      }
+      return res;
+    }
+
+    return decompress(output);
   }
 
 }

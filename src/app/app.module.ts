@@ -21,6 +21,7 @@ import { SearchPipe } from '../pipe/search.pipe';
 
 import { Keyboard } from '@ionic-native/keyboard';
 
+
 @NgModule({
   declarations: [
     MyApp,

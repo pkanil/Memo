@@ -46,12 +46,13 @@ export class SetupPage {
           console.log('upgradePro success : ' + email);
 
           this.util.selectServerUser(email, res=>{
-            if(res.OutBlock_1.length == 0) {
+            if(!res.USR_KEY) {
               if(confirm('결재 고고?')) {
                 this.util.insertServerUser(email, 'G', res=>{
                   this.util.updateLocalUser({
                     EMAIL: email,
                     LOGIN_TP: 'G',
+                    USR_KEY: res.USR_KEY,
                     ENABLE_SYNC: true
                   }, res => {
                     console.log('updateSync true');
@@ -66,6 +67,7 @@ export class SetupPage {
               this.util.updateLocalUser({
                 EMAIL: email,
                 LOGIN_TP: 'G',
+                USR_KEY: res.USR_KEY,
                 ENABLE_SYNC: true
               }, res => {
                 console.log('updateSync true')

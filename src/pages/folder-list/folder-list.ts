@@ -55,6 +55,7 @@ export class FolderListPage {
       myModal.onDidDismiss(() => {
         // Call the method to do whatever in your home.ts
         console.log('Modal closed');
+        this.setFolderList();
         //this.setMemoList(this.navParams.data.FD_ID);
       });
       myModal.present();
@@ -65,6 +66,8 @@ export class FolderListPage {
 
 
   ionViewWillEnter() {
+
+    //alert('ionViewWillEnter')
 
 
     if(window['sqlitePlugin']) {
